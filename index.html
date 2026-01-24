@@ -22,8 +22,15 @@
     <h1>🕵️‍♀️ The SQL Murder Mystery</h1>
     
     <div class="clue-box">
-        <strong>Case #001:</strong> A murder occurred in the Kitchen. 
-        <br>We have a list of suspects. Retrieve the <strong>names</strong> of everyone who was in the <strong>Kitchen</strong>.
+        <strong>Case #002: The Midnight Git Push</strong><br>
+        CEO Alice Founder was found dead this morning. The coroner says death occurred between <strong>22:00 and 23:00</strong>.<br>
+        <br>
+        Your data sources:<br>
+        1. <code>employees</code> (id, name, department, role)<br>
+        2. <code>door_logs</code> (log_id, employee_id, time, access_type)<br>
+        3. <code>slack_messages</code> (sender_id, receiver_id, message, time)<br>
+        <br>
+        <strong>Task:</strong> Find the name of the person who entered the building around the time Alice died.
     </div>
 
     <textarea id="sqlCommand">SELECT * FROM suspects</textarea>
@@ -40,15 +47,29 @@
         // Create a new database in memory
         db = new SQL.Database();
         
-        // 2. SEED DATA (This is where we build the mystery)
-        db.run("CREATE TABLE suspects (id, name, location, weapon);");
-        db.run("INSERT INTO suspects VALUES (1, 'Professor Plum', 'Library', 'Candlestick');");
-        db.run("INSERT INTO suspects VALUES (2, 'Miss Scarlet', 'Kitchen', 'Revolver');");
-        db.run("INSERT INTO suspects VALUES (3, 'Colonel Mustard', 'Kitchen', 'Wrench');");
-        db.run("INSERT INTO suspects VALUES (4, 'Mrs. White', 'Ballroom', 'Rope');");
+        // 2. SEED DATA - "The Midnight Git Push"
         
-        console.log("Database initialized.");
-    });
+        // TABLE 1: EMPLOYEES
+        db.run("CREATE TABLE employees (id, name, department, role);");
+        db.run("INSERT INTO employees VALUES (1, 'Alice Founder', 'Exec', 'CEO');"); // The Victim
+        db.run("INSERT INTO employees VALUES (2, 'Bob Engineer', 'Engineering', 'Senior Dev');");
+        db.run("INSERT INTO employees VALUES (3, 'Charlie Design', 'Design', 'Artist');");
+        db.run("INSERT INTO employees VALUES (4, 'Devin Ops', 'IT', 'Sysadmin');");
+
+        // TABLE 2: DOOR LOGS (The Hard Evidence)
+        // Access types: 'swipe_in', 'swipe_out'
+        db.run("CREATE TABLE door_logs (log_id, employee_id, time, access_type);");
+        db.run("INSERT INTO door_logs VALUES (101, 1, '2023-10-25 18:00', 'swipe_out');"); // Alice leaves early?
+        db.run("INSERT INTO door_logs VALUES (102, 2, '2023-10-25 19:00', 'swipe_out');"); // Bob leaves
+        db.run("INSERT INTO door_logs VALUES (103, 1, '2023-10-25 22:00', 'swipe_in');");  // Alice COMES BACK late
+        db.run("INSERT INTO door_logs VALUES (104, 4, '2023-10-25 22:15', 'swipe_in');");  // Devin arrives shortly after
+        db.run("INSERT INTO door_logs VALUES (105, 4, '2023-10-25 23:00', 'swipe_out');"); // Devin leaves
+
+        // TABLE 3: SLACK MESSAGES (The Context/Alibis)
+        db.run("CREATE TABLE slack_messages (msg_id, sender_id, receiver_id, message, time);");
+        db.run("INSERT INTO slack_messages VALUES (501, 2, 4, 'I am heading home, servers are acting up though.', '2023-10-25 18:55');");
+        db.run("INSERT INTO slack_messages VALUES (502, 1, 4, 'I need you to come in late. I forgot my keycard inside.', '2023-10-25 21:50');");
+        db.run("INSERT INTO slack_messages VALUES (503, 4, 1, 'On my way. I will let you in.', '2023-10-25 21:55');");
 
     // 3. Function to run the user's query
     function runQuery() {
