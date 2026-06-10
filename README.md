@@ -17,7 +17,14 @@ crossed with Countdown's numbers round and the classroom game Krypto.
   501–700 with eight — so every round demands a fresh structure instead
   of building off your last solve. The optional 9-number bonus round
   reaches for 701–999.
+- One big number (25, 50, 75, or 100) joins the wheel somewhere from
+  round 4 on.
+- The running total only appears once every number is placed — work the
+  intermediate math yourself (or on the scratch pad).
+- After each solve, up to three other known solutions are revealed.
 - Shuffle rearranges the wheel; Hint reveals one step of a known solution.
+- Click anywhere in your expression to move the caret (arrow keys work
+  too) — handy for dropping in a parenthesis without retyping.
 - Input however you like: tap the wheel and keypad, or use a physical
   keyboard (digits, `+ - * / ( )`, Backspace, Esc to clear — typed digits
   wait a beat so "1" can become 10/11/12). Tap a used wedge to take that
