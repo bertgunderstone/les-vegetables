@@ -16,7 +16,13 @@ crossed with Countdown's numbers round and the classroom game Krypto.
   wheel — the target never changes — up through 8 numbers, with an optional
   9-number bonus round.
 - Shuffle rearranges the wheel; Hint reveals one step of a known solution.
-- Finish to see your time and hint count, with copyable share text.
+- Input however you like: tap the wheel and keypad, or use a physical
+  keyboard (digits, `+ - * / ( )`, Backspace, Esc to clear — typed digits
+  wait a beat so "1" can become 10/11/12). Tap a used wedge to take that
+  number back out of your expression.
+- Finish to see a spoiler-free share row — one square per round (green:
+  clean solve, yellow: a hint or two, red: leaned on hints; star: bonus
+  round) — plus your time.
 
 ## Design rules
 

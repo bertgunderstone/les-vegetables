@@ -81,8 +81,8 @@
     user-select: none;
   }
   .wedge:not(.used):hover path { filter: brightness(1.12); }
-  .wedge.used { cursor: default; }
   .wedge.used text { fill: #aaa39a; }
+  .share-row { font-size: 1.6rem; letter-spacing: 2px; margin: 6px 0 10px; }
   .hub-label { font-size: 11px; font-weight: bold; letter-spacing: 2px; text-anchor: middle; fill: var(--purple); }
   .hub-target { font-size: 34px; font-weight: bold; text-anchor: middle; dominant-baseline: central; fill: var(--ink); }
 
@@ -404,6 +404,9 @@ let finished = false;
 let advancing = false;
 let bonusPlayed = false;
 let bonusSolved = false;
+let roundHints = [];      // hints used in each completed round
+let digitBuf = '';
+let digitTimer = null;
 
 function fmtTime(ms) {
   const s = Math.floor(ms / 1000);
@@ -464,8 +467,15 @@ function renderWheel() {
     label.textContent = game.numbers[numIdx];
     g.appendChild(label);
     g.addEventListener('click', () => {
-      if (used || finished || advancing) return;
-      tokens.push({ t: 'num', v: game.numbers[numIdx], tileId: numIdx });
+      if (finished || advancing) return;
+      flushDigits();
+      if (used) {
+        // tap a used wedge to take that number back out of the expression
+        const ti = tokens.findIndex(tk => tk.t === 'num' && tk.tileId === numIdx);
+        if (ti >= 0) tokens.splice(ti, 1);
+      } else {
+        tokens.push({ t: 'num', v: game.numbers[numIdx], tileId: numIdx });
+      }
       renderExpr();
     });
     wheelEl.appendChild(g);
@@ -512,6 +522,7 @@ function renderExpr() {
 
 function onRoundSolved() {
   advancing = true;
+  roundHints.push(hintsShownThisRound);
   solvedFlashEl.classList.add('show');
   setTimeout(() => solvedFlashEl.classList.remove('show'), 1200);
   setTimeout(() => {
@@ -560,12 +571,16 @@ function endGame() {
   finished = true;
   const elapsed = fmtTime(Date.now() - startTime);
   renderRounds();
-  const bonusLine = bonusPlayed ? (bonusSolved ? ' +★' : '') : '';
-  const shareText = `Bingpot! — target ${game.target}\n8/8${bonusLine} · ${elapsed} · ${hintsUsed} hint${hintsUsed === 1 ? '' : 's'}`;
+  // one square per round: green = clean solve, yellow = a hint or two, red = leaned on hints
+  const squares = roundHints.slice(0, MAX_ROUND_SIZE - MIN_ROUND_SIZE + 1)
+    .map(h => h === 0 ? '🟩' : (h <= 2 ? '🟨' : '🟥')).join('');
+  const shareRow = squares + (bonusSolved ? '⭐' : '');
+  const shareText = `Bingpot! 🎯${game.target}\n${shareRow} ${elapsed}`;
   showOverlay(`
     <h2>Final score</h2>
     <p>Target: <strong>${game.target}</strong></p>
-    <p>Time: <strong>${elapsed}</strong> · Hints: <strong>${hintsUsed}</strong>${bonusPlayed && bonusSolved ? ' · <strong>Bonus ★</strong>' : ''}</p>
+    <div class="share-row">${shareRow}</div>
+    <p>Time: <strong>${elapsed}</strong> · Hints: <strong>${hintsUsed}</strong></p>
     <div class="actions">
       <button id="shareBtn">Copy results</button>
       <button id="againBtn">New game</button>
@@ -579,21 +594,77 @@ function endGame() {
 }
 
 /* ---------- controls ---------- */
+function pushOp(v) {
+  flushDigits();
+  tokens.push(v === '(' || v === ')' ? { t: 'paren', v } : { t: 'op', v });
+  renderExpr();
+}
 document.querySelectorAll('.keypad button[data-op]').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (finished || !game) return;
-    const v = btn.dataset.op;
-    tokens.push(v === '(' || v === ')' ? { t: 'paren', v } : { t: 'op', v });
-    renderExpr();
+    if (finished || advancing || !game) return;
+    pushOp(btn.dataset.op);
   });
 });
 document.getElementById('backspace').addEventListener('click', () => {
-  if (finished || !game) return;
+  if (finished || advancing || !game) return;
+  if (digitBuf) { clearTimeout(digitTimer); digitBuf = ''; return; }
   tokens.pop();
   renderExpr();
 });
+
+/* ---------- keyboard input ---------- */
+// Digits buffer briefly so "1" can become 10/11/12 when those are on the wheel.
+function unusedTiles() {
+  return tileOrder.filter(idx => !tokens.some(tk => tk.t === 'num' && tk.tileId === idx));
+}
+function commitDigits(force) {
+  if (!digitBuf) return;
+  const avail = unusedTiles();
+  const exact = avail.find(idx => String(game.numbers[idx]) === digitBuf);
+  const extendable = avail.some(idx =>
+    String(game.numbers[idx]).startsWith(digitBuf) && String(game.numbers[idx]) !== digitBuf);
+  if (exact !== undefined && (!extendable || force)) {
+    tokens.push({ t: 'num', v: game.numbers[exact], tileId: exact });
+    digitBuf = '';
+    renderExpr();
+  } else if (!extendable || force) {
+    digitBuf = ''; // no such number on the wheel
+  }
+}
+function flushDigits() {
+  clearTimeout(digitTimer);
+  commitDigits(true);
+}
+document.addEventListener('keydown', (e) => {
+  if (finished || advancing || !game || !overlayEl.classList.contains('hidden')) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const opMap = { '+': '+', '-': '−', '*': '×', x: '×', '/': '÷', '(': '(', ')': ')' };
+  if (/^[0-9]$/.test(e.key)) {
+    e.preventDefault();
+    clearTimeout(digitTimer);
+    digitBuf += e.key;
+    commitDigits(false);
+    if (digitBuf) digitTimer = setTimeout(() => { commitDigits(true); }, 650);
+  } else if (opMap[e.key]) {
+    e.preventDefault();
+    pushOp(opMap[e.key]);
+  } else if (e.key === 'Backspace') {
+    e.preventDefault();
+    if (digitBuf) { clearTimeout(digitTimer); digitBuf = ''; return; }
+    tokens.pop();
+    renderExpr();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    clearTimeout(digitTimer);
+    digitBuf = '';
+    tokens = [];
+    renderExpr();
+  }
+});
 document.getElementById('clearBtn').addEventListener('click', () => {
-  if (finished || !game) return;
+  if (finished || advancing || !game) return;
+  clearTimeout(digitTimer);
+  digitBuf = '';
   tokens = [];
   renderExpr();
 });
@@ -622,6 +693,9 @@ async function newGame() {
   hintsUsed = 0;
   hintsShownThisRound = 0;
   tokens = [];
+  roundHints = [];
+  digitBuf = '';
+  clearTimeout(digitTimer);
   hintAreaEl.innerHTML = '';
   showOverlay('<h2>Bingpot!</h2><p id="genProgress">Generating puzzle…</p>');
   try {
