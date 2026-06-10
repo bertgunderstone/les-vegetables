@@ -1,272 +1,606 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>SQL Detective IDE</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
-    <style>
-        /* LAYOUT & BASICS */
-        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; height: 100vh; display: flex; overflow: hidden; }
-        
-        /* SIDEBAR (Schema) */
-        .sidebar { width: 250px; background: #2b2d30; color: #a9b7c6; display: flex; flex-direction: column; border-right: 1px solid #1e1f22; flex-shrink: 0; }
-        .sidebar-header { padding: 15px; background: #3c3f41; font-weight: bold; color: #fff; border-bottom: 1px solid #1e1f22; }
-        .schema-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
-        .schema-table { padding: 0; }
-        .table-name { padding: 8px 15px; cursor: pointer; font-weight: 600; display: block; user-select: none; }
-        .table-name:hover { background: #3c3f41; color: #fff; }
-        .table-name::before { content: "📄 "; font-size: 0.8em; }
-        .column-list { list-style: none; padding-left: 30px; display: none; background: #313335; }
-        .column-list.open { display: block; }
-        .column-item { padding: 4px 0; font-size: 0.9em; color: #808080; }
-        .column-type { float: right; margin-right: 10px; font-size: 0.8em; color: #6a8759; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Numbuffalo</title>
+<style>
+  :root {
+    --paper: #faf7f0;
+    --ink: #1a1a1a;
+    --tile: #f6c945;
+    --tile-used: #e8e2d4;
+    --accent: #2b6cb0;
+    --good: #2f855a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  header { text-align: center; margin-bottom: 8px; }
+  h1 { font-size: 2rem; letter-spacing: 0.02em; }
+  .tagline { font-style: italic; font-size: 0.9rem; color: #555; }
 
-        /* MAIN AREA */
-        .main-content { flex-grow: 1; display: flex; flex-direction: column; background: #1e1f22; }
-        
-        /* EDITOR SECTION */
-        .editor-container { height: 40%; display: flex; flex-direction: column; border-bottom: 1px solid #3c3f41; }
-        .toolbar { background: #3c3f41; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .toolbar h2 { margin: 0; font-size: 1rem; color: #fff; }
-        textarea { flex-grow: 1; background: #2b2d30; color: #a9b7c6; border: none; padding: 15px; font-family: "JetBrains Mono", "Courier New", monospace; font-size: 14px; resize: none; outline: none; line-height: 1.5; }
-        
-        /* BUTTONS */
-        .btn-run { background: #365880; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-run:hover { background: #4b6e96; }
-        .shortcut-hint { font-size: 0.8em; color: #808080; margin-left: 10px; }
+  .status-bar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    font-size: 0.9rem;
+    margin: 10px 0 4px;
+  }
+  .rounds { display: flex; gap: 6px; }
+  .round-dot {
+    width: 22px; height: 22px;
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+  }
+  .round-dot.done { background: var(--ink); color: var(--paper); }
+  .round-dot.current { background: var(--tile); }
+  .round-dot.bonus { border-style: dashed; }
 
-        /* RESULTS SECTION (Tabs) */
-        .results-container { height: 60%; display: flex; flex-direction: column; background: #2b2d30; }
-        .tabs-header { display: flex; background: #3c3f41; overflow-x: auto; border-bottom: 1px solid #1e1f22; }
-        .tab { padding: 8px 15px; color: #a9b7c6; cursor: pointer; border-right: 1px solid #1e1f22; display: flex; align-items: center; font-size: 0.9rem; min-width: 100px; }
-        .tab.active { background: #2b2d30; color: #fff; border-top: 2px solid #365880; }
-        .tab:hover { background: #45494a; }
-        .close-tab { margin-left: 10px; border-radius: 50%; padding: 0 4px; font-size: 0.8em; }
-        .close-tab:hover { background: #cc0000; color: white; }
-        
-        /* RESULT CONTENT */
-        .tab-content { flex-grow: 1; overflow: auto; padding: 15px; display: none; }
-        .tab-content.active { display: block; }
-        
-        /* TABLES */
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; color: #a9b7c6; }
-        th, td { border: 1px solid #3c3f41; padding: 8px; text-align: left; }
-        th { background-color: #3c3f41; color: #fff; position: sticky; top: 0; }
-        tr:nth-child(even) { background-color: #313335; }
-        .error-msg { color: #ff6b68; font-family: monospace; }
-        .success-msg { color: #6a8759; font-family: monospace; }
-        
-        /* SCROLLBARS */
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: #2b2d30; }
-        ::-webkit-scrollbar-thumb { background: #555; border-radius: 5px; }
-    </style>
+  .wheel-wrap { position: relative; width: 340px; height: 340px; margin: 12px 0; }
+  .target {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 96px; height: 96px;
+    border: 2.5px solid var(--ink);
+    border-radius: 50%;
+    background: #fff;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 2rem; font-weight: bold;
+  }
+  .target small { font-size: 0.6rem; font-weight: normal; letter-spacing: 0.1em; }
+  .tile {
+    position: absolute;
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    background: var(--tile);
+    border: 1.5px solid var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.35s ease, background 0.2s, opacity 0.2s;
+  }
+  .tile.used { background: var(--tile-used); color: #999; cursor: default; }
+  .tile:not(.used):hover { transform: scale(1.08); }
+
+  .expr-area { width: 100%; max-width: 480px; text-align: center; }
+  .expr-display {
+    min-height: 48px;
+    border-bottom: 2px solid var(--ink);
+    font-size: 1.6rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 4px;
+  }
+  .expr-display .ph { color: #bbb; font-size: 1rem; font-style: italic; }
+  .live-value { min-height: 26px; font-size: 1rem; color: var(--accent); margin-top: 4px; }
+  .live-value.match-partial { color: #b7791f; }
+
+  .keypad {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .keypad button {
+    font-family: inherit;
+    font-size: 1.3rem;
+    width: 52px; height: 46px;
+    background: #fff;
+    border: 1.5px solid var(--ink);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .keypad button:hover { background: #f0ece0; }
+  .actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+  .actions button {
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 8px 16px;
+    background: #fff;
+    border: 1.5px solid var(--ink);
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .actions button:hover { background: #f0ece0; }
+
+  .hint-area {
+    margin-top: 12px;
+    max-width: 480px;
+    width: 100%;
+    font-size: 0.95rem;
+    text-align: center;
+    color: #444;
+  }
+  .hint-area div { padding: 2px 0; }
+
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(20,20,20,0.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  .overlay.hidden { display: none; }
+  .card {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    padding: 28px 32px;
+    max-width: 380px;
+    text-align: center;
+  }
+  .card h2 { margin-bottom: 12px; }
+  .card p { margin-bottom: 10px; line-height: 1.4; }
+  .card .actions { margin-top: 16px; }
+  .solved-flash {
+    position: fixed; left: 50%; top: 18%;
+    transform: translateX(-50%);
+    background: var(--good); color: #fff;
+    padding: 10px 26px; border-radius: 24px;
+    font-size: 1.2rem;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 5;
+  }
+  .solved-flash.show { opacity: 1; }
+</style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <div class="sidebar-header">Database Schema</div>
-        <ul class="schema-list" id="schemaList">
-            </ul>
-    </div>
+<header>
+  <h1>Numbuffalo</h1>
+  <div class="tagline">use every number to hit the target</div>
+</header>
 
-    <div class="main-content">
-        
-        <div class="editor-container">
-            <div class="toolbar">
-                <div style="display:flex; align-items:center;">
-                    <h2>Console.sql</h2>
-                    <span class="shortcut-hint">(Cmd/Ctrl + Enter to Run)</span>
-                </div>
-                <button class="btn-run" onclick="runQuery()">▶ Run</button>
-            </div>
-            <textarea id="sqlCommand" placeholder="Write your queries here...">-- Case #002: The Midnight Git Push
--- Select a query and hit Cmd+Enter to run it.
+<div class="status-bar">
+  <div class="rounds" id="rounds"></div>
+  <div id="timer">0:00</div>
+</div>
 
-SELECT * FROM employees;
+<div class="wheel-wrap" id="wheel">
+  <div class="target" id="target"><small>TARGET</small><span id="targetNum">–</span></div>
+</div>
 
-SELECT * FROM door_logs;
+<div class="expr-area">
+  <div class="expr-display" id="exprDisplay"><span class="ph">tap numbers and operators…</span></div>
+  <div class="live-value" id="liveValue"></div>
+  <div class="keypad">
+    <button data-op="(">(</button>
+    <button data-op=")">)</button>
+    <button data-op="+">+</button>
+    <button data-op="−">−</button>
+    <button data-op="×">×</button>
+    <button data-op="÷">÷</button>
+    <button id="backspace">⌫</button>
+  </div>
+  <div class="actions">
+    <button id="clearBtn">Clear</button>
+    <button id="shuffleBtn">Shuffle</button>
+    <button id="hintBtn">Hint</button>
+    <button id="newGameBtn">New game</button>
+  </div>
+</div>
 
-SELECT * FROM slack_messages;</textarea>
-        </div>
+<div class="hint-area" id="hintArea"></div>
 
-        <div class="results-container">
-            <div class="tabs-header" id="tabsHeader"></div>
-            <div id="tabsContent"></div>
-        </div>
-    </div>
+<div class="solved-flash" id="solvedFlash">Solved!</div>
+
+<div class="overlay hidden" id="overlay">
+  <div class="card" id="overlayCard"></div>
+</div>
 
 <script>
-    let db;
-    let tabCount = 0;
+'use strict';
 
-    // 1. INITIALIZE DATABASE
-    config = { locateFile: filename => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${filename}` }
-    initSqlJs(config).then(function(SQL){
-        db = new SQL.Database();
-        
-        // --- SEED DATA ---
-        db.run("CREATE TABLE employees (id INTEGER, name TEXT, department TEXT, role TEXT);");
-        db.run("INSERT INTO employees VALUES (1, 'Alice Founder', 'Exec', 'CEO');");
-        db.run("INSERT INTO employees VALUES (2, 'Bob Engineer', 'Engineering', 'Senior Dev');");
-        db.run("INSERT INTO employees VALUES (3, 'Charlie Design', 'Design', 'Artist');");
-        db.run("INSERT INTO employees VALUES (4, 'Devin Ops', 'IT', 'Sysadmin');");
+/* ---------- rational arithmetic ---------- */
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
+function rat(n, d = 1) {
+  if (d === 0) return null;
+  if (d < 0) { n = -n; d = -d; }
+  const g = gcd(n, d);
+  return { n: n / g, d: d / g };
+}
+function rAdd(a, b) { return rat(a.n * b.d + b.n * a.d, a.d * b.d); }
+function rSub(a, b) { return rat(a.n * b.d - b.n * a.d, a.d * b.d); }
+function rMul(a, b) { return rat(a.n * b.n, a.d * b.d); }
+function rDiv(a, b) { return b.n === 0 ? null : rat(a.n * b.d, a.d * b.n); }
+function rEq(a, b) { return a.n === b.n && a.d === b.d; }
+function rStr(a) {
+  if (a.d === 1) return String(a.n);
+  const dec = a.n / a.d;
+  return `${a.n}/${a.d} (${Math.round(dec * 1000) / 1000})`;
+}
 
-        db.run("CREATE TABLE door_logs (log_id INTEGER, employee_id INTEGER, time TEXT, access_type TEXT);");
-        db.run("INSERT INTO door_logs VALUES (101, 1, '2023-10-25 18:00', 'swipe_out');");
-        db.run("INSERT INTO door_logs VALUES (102, 2, '2023-10-25 19:00', 'swipe_out');");
-        db.run("INSERT INTO door_logs VALUES (103, 1, '2023-10-25 22:00', 'swipe_in');");
-        db.run("INSERT INTO door_logs VALUES (104, 4, '2023-10-25 22:15', 'swipe_in');");
-        db.run("INSERT INTO door_logs VALUES (105, 4, '2023-10-25 23:00', 'swipe_out');");
+/* ---------- expression parsing (tokens -> rational) ---------- */
+// tokens: {t:'num', v, tileId} | {t:'op', v:'+'|'−'|'×'|'÷'} | {t:'paren', v:'('|')'}
+function evalTokens(tokens) {
+  let i = 0;
+  function expr() {
+    let v = term();
+    if (v === undefined) return undefined;
+    while (i < tokens.length && tokens[i].t === 'op' && (tokens[i].v === '+' || tokens[i].v === '−')) {
+      const op = tokens[i++].v;
+      const r = term();
+      if (r === undefined || v === null || r === null) { v = (r === undefined) ? undefined : null; if (v === undefined) return undefined; continue; }
+      v = op === '+' ? rAdd(v, r) : rSub(v, r);
+    }
+    return v;
+  }
+  function term() {
+    let v = factor();
+    if (v === undefined) return undefined;
+    while (i < tokens.length && tokens[i].t === 'op' && (tokens[i].v === '×' || tokens[i].v === '÷')) {
+      const op = tokens[i++].v;
+      const r = factor();
+      if (r === undefined) return undefined;
+      if (v === null || r === null) { v = null; continue; }
+      v = op === '×' ? rMul(v, r) : rDiv(v, r);
+    }
+    return v;
+  }
+  function factor() {
+    if (i >= tokens.length) return undefined;
+    const tk = tokens[i];
+    if (tk.t === 'num') { i++; return rat(tk.v); }
+    if (tk.t === 'paren' && tk.v === '(') {
+      i++;
+      const v = expr();
+      if (v === undefined) return undefined;
+      if (i >= tokens.length || tokens[i].v !== ')') return undefined;
+      i++;
+      return v;
+    }
+    return undefined;
+  }
+  const v = expr();
+  if (v === undefined || i < tokens.length) return undefined; // malformed / incomplete
+  return v; // rational, or null for division by zero
+}
 
-        db.run("CREATE TABLE slack_messages (msg_id INTEGER, sender_id INTEGER, receiver_id INTEGER, message TEXT, time TEXT);");
-        db.run("INSERT INTO slack_messages VALUES (501, 2, 4, 'I am heading home, servers are acting up though.', '2023-10-25 18:55');");
-        db.run("INSERT INTO slack_messages VALUES (502, 1, 4, 'I need you to come in late. I forgot my keycard inside.', '2023-10-25 21:50');");
-        db.run("INSERT INTO slack_messages VALUES (503, 4, 1, 'On my way. I will let you in.', '2023-10-25 21:55');");
+/* ---------- solver: subset DP over non-negative integers ---------- */
+const VALUE_CAP = 600;
 
-        console.log("Database initialized.");
-        generateSchemaSidebar(); // Auto-build the sidebar
+// Returns map of value -> {expr, steps} reachable using ALL numbers of each subset.
+// solveDP(numbers) -> array indexed by bitmask of Maps.
+function solveDP(numbers) {
+  const n = numbers.length;
+  const memo = new Array(1 << n);
+  for (let i = 0; i < n; i++) {
+    memo[1 << i] = new Map([[numbers[i], { expr: String(numbers[i]), steps: [], v: numbers[i] }]]);
+  }
+  for (let mask = 1; mask < (1 << n); mask++) {
+    if (memo[mask]) continue;
+    const m = new Map();
+    for (let a = (mask - 1) & mask; a > 0; a = (a - 1) & mask) {
+      const b = mask ^ a;
+      if (a < b) continue; // each partition once
+      for (const [x, ex] of memo[a]) {
+        for (const [y, ey] of memo[b]) {
+          tryCombine(m, x, ex, y, ey);
+        }
+      }
+    }
+    memo[mask] = m;
+  }
+  return memo;
+}
+function addResult(m, v, e1, e2, sym, parenLow) {
+  if (v < 0 || v > VALUE_CAP || !Number.isInteger(v) || m.has(v)) return;
+  const wrap = (e) => (parenLow && e.steps.length > 0 && /[+−]/.test(stripParens(e.expr))) ? `(${e.expr})` : e.expr;
+  const expr = `${wrap(e1)} ${sym} ${wrap(e2)}`;
+  const steps = e1.steps.concat(e2.steps, [`${e1.v} ${sym} ${e2.v} = ${v}`]);
+  m.set(v, { expr, steps, v });
+}
+function stripParens(s) {
+  let prev;
+  do { prev = s; s = s.replace(/\([^()]*\)/g, ''); } while (s !== prev);
+  return s;
+}
+function tryCombine(m, x, ex, y, ey) {
+  addResult(m, x + y, ex, ey, '+', false);
+  addResult(m, x * y, ex, ey, '×', true);
+  if (x >= y) addResult(m, x - y, ex, ey, '−', false); else addResult(m, y - x, ey, ex, '−', false);
+  if (y !== 0 && x % y === 0) addResult(m, x / y, ex, ey, '÷', true);
+  if (x !== 0 && y % x === 0) addResult(m, y / x, ey, ex, '÷', true);
+}
+function solveFor(numbers, target) {
+  const memo = solveDP(numbers);
+  const full = memo[(1 << numbers.length) - 1];
+  return full.get(target) || null;
+}
+
+/* ---------- puzzle generation ---------- */
+const MIN_ROUND_SIZE = 4, MAX_ROUND_SIZE = 8, BONUS_SIZE = 9;
+const TARGET_MIN = 13, TARGET_MAX = 99;
+
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+async function generateGame(onProgress) {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    // First four: 1 is allowed here, and only here.
+    const firstFour = shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).slice(0, 4);
+    const memo4 = solveDP(firstFour);
+    const reachable = memo4[(1 << 4) - 1];
+    const targets = shuffled([...reachable.keys()].filter(v => v >= TARGET_MIN && v <= TARGET_MAX));
+    if (targets.length === 0) continue;
+    const target = targets[0];
+
+    const numbers = firstFour.slice();
+    const solutions = [reachable.get(target)];
+    let ok = true;
+    for (let size = MIN_ROUND_SIZE + 1; size <= BONUS_SIZE; size++) {
+      onProgress(`Building round ${size}…`);
+      await new Promise(r => setTimeout(r)); // let spinner paint
+      const pool = shuffled([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(c => !numbers.includes(c)));
+      let found = null;
+      for (const cand of pool) {
+        const sol = solveFor(numbers.concat(cand), target);
+        if (sol) { found = { cand, sol }; break; }
+      }
+      if (!found) { ok = false; break; }
+      numbers.push(found.cand);
+      solutions.push(found.sol);
+    }
+    if (ok) return { numbers, target, solutions };
+  }
+  throw new Error('Could not generate a puzzle — please reload.');
+}
+
+/* ---------- game state & UI ---------- */
+const wheelEl = document.getElementById('wheel');
+const targetNumEl = document.getElementById('targetNum');
+const exprDisplayEl = document.getElementById('exprDisplay');
+const liveValueEl = document.getElementById('liveValue');
+const roundsEl = document.getElementById('rounds');
+const timerEl = document.getElementById('timer');
+const hintAreaEl = document.getElementById('hintArea');
+const overlayEl = document.getElementById('overlay');
+const overlayCardEl = document.getElementById('overlayCard');
+const solvedFlashEl = document.getElementById('solvedFlash');
+
+let game = null;          // {numbers, target, solutions}
+let roundSize = MIN_ROUND_SIZE;
+let tokens = [];
+let tileOrder = [];       // indices into game.numbers, display order
+let hintsUsed = 0;
+let hintsShownThisRound = 0;
+let startTime = null;
+let timerInterval = null;
+let finished = false;
+let advancing = false;
+let bonusPlayed = false;
+let bonusSolved = false;
+
+function fmtTime(ms) {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+function tickTimer() {
+  if (startTime && !finished) timerEl.textContent = fmtTime(Date.now() - startTime);
+}
+
+function showOverlay(html) {
+  overlayCardEl.innerHTML = html;
+  overlayEl.classList.remove('hidden');
+}
+function hideOverlay() { overlayEl.classList.add('hidden'); }
+
+function renderRounds() {
+  roundsEl.innerHTML = '';
+  for (let size = MIN_ROUND_SIZE; size <= BONUS_SIZE; size++) {
+    const d = document.createElement('div');
+    d.className = 'round-dot' + (size === BONUS_SIZE ? ' bonus' : '');
+    d.textContent = size === BONUS_SIZE ? '★' : size;
+    if (size < roundSize || (finished && size <= roundSize)) d.classList.add('done');
+    else if (size === roundSize && !finished) d.classList.add('current');
+    roundsEl.appendChild(d);
+  }
+}
+
+function renderWheel() {
+  wheelEl.querySelectorAll('.tile').forEach(t => t.remove());
+  const cx = 170, cy = 170, radius = 132;
+  const count = tileOrder.length;
+  tileOrder.forEach((numIdx, pos) => {
+    const angle = (Math.PI * 2 * pos) / count - Math.PI / 2;
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.textContent = game.numbers[numIdx];
+    tile.dataset.numIdx = numIdx;
+    tile.style.left = `${cx + radius * Math.cos(angle) - 29}px`;
+    tile.style.top = `${cy + radius * Math.sin(angle) - 29}px`;
+    if (tokens.some(tk => tk.t === 'num' && tk.tileId === numIdx)) tile.classList.add('used');
+    tile.addEventListener('click', () => {
+      if (tile.classList.contains('used') || finished) return;
+      tokens.push({ t: 'num', v: game.numbers[numIdx], tileId: numIdx });
+      renderExpr();
     });
+    wheelEl.appendChild(tile);
+  });
+}
 
-    // 2. RUN QUERY LOGIC
-    function runQuery() {
-        const textarea = document.getElementById('sqlCommand');
-        // Get highlighted text, OR if empty, get all text
-        let command = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
-        if (!command.trim()) {
-            command = textarea.value;
-        }
-
-        if (!command.trim()) return; // Don't run empty strings
-
-        tabCount++;
-        const tabId = `tab-${tabCount}`;
-        const shortCmd = command.length > 15 ? command.substring(0, 15) + "..." : command;
-
-        try {
-            const results = db.exec(command);
-            createTab(tabId, shortCmd, results, null);
-        } catch (err) {
-            createTab(tabId, "Error", [], err.message);
-        }
+function renderExpr() {
+  renderWheel();
+  if (tokens.length === 0) {
+    exprDisplayEl.innerHTML = '<span class="ph">tap numbers and operators…</span>';
+  } else {
+    exprDisplayEl.textContent = tokens.map(tk => tk.v).join(' ');
+  }
+  const v = evalTokens(tokens);
+  const allUsed = tokens.filter(tk => tk.t === 'num').length === roundSize;
+  if (tokens.length === 0) {
+    liveValueEl.textContent = '';
+  } else if (v === undefined) {
+    liveValueEl.textContent = '…';
+    liveValueEl.className = 'live-value';
+  } else if (v === null) {
+    liveValueEl.textContent = 'undefined (division by zero)';
+    liveValueEl.className = 'live-value';
+  } else {
+    liveValueEl.textContent = `= ${rStr(v)}`;
+    if (rEq(v, rat(game.target)) && !allUsed) {
+      liveValueEl.className = 'live-value match-partial';
+      liveValueEl.textContent += ' — but you must use every number!';
+    } else {
+      liveValueEl.className = 'live-value';
     }
+  }
+  if (v && allUsed && !advancing && rEq(v, rat(game.target))) onRoundSolved();
+}
 
-    // 3. TAB SYSTEM
-    function createTab(id, title, data, error) {
-        // Deactivate old tabs
-        document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
-
-        // Create Tab Button
-        const tabBtn = document.createElement('div');
-        tabBtn.className = 'tab active';
-        tabBtn.innerHTML = `${title} <span class="close-tab" onclick="closeTab(event, '${id}')">×</span>`;
-        tabBtn.onclick = () => switchTab(id);
-        document.getElementById('tabsHeader').appendChild(tabBtn);
-
-        // Create Tab Content
-        const contentDiv = document.createElement('div');
-        contentDiv.id = id;
-        contentDiv.className = 'tab-content active';
-        
-        if (error) {
-            contentDiv.innerHTML = `<div class="error-msg">❌ ${error}</div>`;
-        } else if (data.length === 0) {
-            contentDiv.innerHTML = `<div class="success-msg">✅ Query executed successfully. No results returned.</div>`;
-        } else {
-            // Render Table
-            const table = document.createElement('table');
-            const headerRow = document.createElement('tr');
-            data[0].columns.forEach(col => {
-                const th = document.createElement('th');
-                th.innerText = col;
-                headerRow.appendChild(th);
-            });
-            table.appendChild(headerRow);
-            data[0].values.forEach(row => {
-                const tr = document.createElement('tr');
-                row.forEach(val => {
-                    const td = document.createElement('td');
-                    td.innerText = val;
-                    tr.appendChild(td);
-                });
-                table.appendChild(tr);
-            });
-            contentDiv.appendChild(table);
-        }
-        document.getElementById('tabsContent').appendChild(contentDiv);
-        
-        // Auto-scroll to new tab
-        tabBtn.scrollIntoView();
+function onRoundSolved() {
+  advancing = true;
+  solvedFlashEl.classList.add('show');
+  setTimeout(() => solvedFlashEl.classList.remove('show'), 1200);
+  setTimeout(() => {
+    if (roundSize === MAX_ROUND_SIZE) {
+      promptBonus();
+    } else if (roundSize === BONUS_SIZE) {
+      bonusSolved = true;
+      endGame();
+    } else {
+      advanceRound();
     }
+  }, 900);
+}
 
-    function switchTab(id) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
-        // Find the button with the right onclick and set active
-        // (A bit hacky but works for vibe coding)
-        const tabs = document.getElementById('tabsHeader').children;
-        for (let tab of tabs) {
-            if (tab.innerHTML.includes(`'${id}'`)) tab.classList.add('active');
-        }
-        document.getElementById(id).classList.add('active');
-    }
+function advanceRound() {
+  advancing = false;
+  roundSize++;
+  tileOrder.push(roundSize - 1);
+  tokens = [];
+  hintsShownThisRound = 0;
+  hintAreaEl.innerHTML = '';
+  renderRounds();
+  renderExpr();
+}
 
-    function closeTab(e, id) {
-        e.stopPropagation(); // Don't trigger the switchTab event
-        const content = document.getElementById(id);
-        const header = e.target.parentElement;
-        
-        // If closing active tab, try to switch to previous
-        if (header.classList.contains('active')) {
-            const prev = header.previousElementSibling;
-            if (prev) prev.click();
-        }
-        
-        header.remove();
-        content.remove();
-    }
+function promptBonus() {
+  showOverlay(`
+    <h2>You did it!</h2>
+    <p>All rounds solved. Care to try the <strong>9-number bonus round</strong>?</p>
+    <div class="actions">
+      <button id="bonusYes">Bonus round</button>
+      <button id="bonusNo">Finish</button>
+    </div>`);
+  document.getElementById('bonusYes').addEventListener('click', () => {
+    bonusPlayed = true;
+    hideOverlay();
+    advanceRound();
+  });
+  document.getElementById('bonusNo').addEventListener('click', () => {
+    hideOverlay();
+    endGame();
+  });
+}
 
-    // 4. DYNAMIC SCHEMA SIDEBAR
-    function generateSchemaSidebar() {
-        const schemaList = document.getElementById('schemaList');
-        // Get all tables
-        const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
-        
-        if (tables.length > 0) {
-            tables[0].values.forEach(row => {
-                const tableName = row[0];
-                const li = document.createElement('li');
-                li.className = 'schema-table';
-                
-                // Get columns for this table
-                const cols = db.exec(`PRAGMA table_info(${tableName})`);
-                let colHtml = '<ul class="column-list">';
-                cols[0].values.forEach(col => {
-                    colHtml += `<li class="column-item">${col[1]} <span class="column-type">${col[2]}</span></li>`;
-                });
-                colHtml += '</ul>';
-
-                li.innerHTML = `<span class="table-name" onclick="toggleCols(this)">${tableName}</span>${colHtml}`;
-                schemaList.appendChild(li);
-            });
-        }
-    }
-
-    function toggleCols(el) {
-        const colList = el.nextElementSibling;
-        colList.classList.toggle('open');
-    }
-
-    // 5. KEYBOARD SHORTCUT (Cmd+Enter)
-    document.getElementById('sqlCommand').addEventListener('keydown', function(e) {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-            e.preventDefault();
-            runQuery();
-        }
+function endGame() {
+  finished = true;
+  const elapsed = fmtTime(Date.now() - startTime);
+  renderRounds();
+  const bonusLine = bonusPlayed ? (bonusSolved ? ' +★' : '') : '';
+  const shareText = `Numbuffalo — target ${game.target}\n8/8${bonusLine} · ${elapsed} · ${hintsUsed} hint${hintsUsed === 1 ? '' : 's'}`;
+  showOverlay(`
+    <h2>Final score</h2>
+    <p>Target: <strong>${game.target}</strong></p>
+    <p>Time: <strong>${elapsed}</strong> · Hints: <strong>${hintsUsed}</strong>${bonusPlayed && bonusSolved ? ' · <strong>Bonus ★</strong>' : ''}</p>
+    <div class="actions">
+      <button id="shareBtn">Copy results</button>
+      <button id="againBtn">New game</button>
+    </div>`);
+  document.getElementById('shareBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(shareText).then(() => {
+      document.getElementById('shareBtn').textContent = 'Copied!';
     });
+  });
+  document.getElementById('againBtn').addEventListener('click', () => { hideOverlay(); newGame(); });
+}
 
+/* ---------- controls ---------- */
+document.querySelectorAll('.keypad button[data-op]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (finished || !game) return;
+    const v = btn.dataset.op;
+    tokens.push(v === '(' || v === ')' ? { t: 'paren', v } : { t: 'op', v });
+    renderExpr();
+  });
+});
+document.getElementById('backspace').addEventListener('click', () => {
+  if (finished || !game) return;
+  tokens.pop();
+  renderExpr();
+});
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (finished || !game) return;
+  tokens = [];
+  renderExpr();
+});
+document.getElementById('shuffleBtn').addEventListener('click', () => {
+  if (!game) return;
+  tileOrder = shuffled(tileOrder);
+  renderWheel();
+});
+document.getElementById('hintBtn').addEventListener('click', () => {
+  if (finished || !game) return;
+  const steps = game.solutions[roundSize - MIN_ROUND_SIZE].steps;
+  if (hintsShownThisRound >= steps.length) return;
+  hintsUsed++;
+  hintsShownThisRound++;
+  hintAreaEl.innerHTML = '<strong>One way to get there:</strong>' +
+    steps.slice(0, hintsShownThisRound).map(s => `<div>${s}</div>`).join('');
+});
+document.getElementById('newGameBtn').addEventListener('click', newGame);
+
+async function newGame() {
+  clearInterval(timerInterval);
+  finished = false;
+  advancing = false;
+  bonusPlayed = false;
+  bonusSolved = false;
+  hintsUsed = 0;
+  hintsShownThisRound = 0;
+  tokens = [];
+  hintAreaEl.innerHTML = '';
+  showOverlay('<h2>Numbuffalo</h2><p id="genProgress">Generating puzzle…</p>');
+  try {
+    game = await generateGame(msg => {
+      const p = document.getElementById('genProgress');
+      if (p) p.textContent = msg;
+    });
+  } catch (e) {
+    showOverlay(`<h2>Oops</h2><p>${e.message}</p>`);
+    return;
+  }
+  hideOverlay();
+  roundSize = MIN_ROUND_SIZE;
+  tileOrder = [0, 1, 2, 3];
+  targetNumEl.textContent = game.target;
+  startTime = Date.now();
+  timerInterval = setInterval(tickTimer, 250);
+  renderRounds();
+  renderExpr();
+}
+
+newGame();
 </script>
-
 </body>
 </html>
