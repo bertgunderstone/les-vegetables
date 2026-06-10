@@ -1,11 +1,13 @@
-# Numbuffalo
+# Bingpot!
 
 A math riff on The New Yorker's [Shuffalo](https://www.newyorker.com/puzzles-and-games-dept/shuffalo),
 crossed with Countdown's numbers round and the classroom game Krypto.
 
 ## How to play
 
-- Numbers appear on a wheel with a **target** in the middle.
+- Numbers appear as connected wedges of a wheel (Shuffalo-style) with the
+  **target** in the center hub. The look is Memphis Group: loud colors,
+  chunky outlines, geometric confetti.
 - Build an expression that equals the target, using **every number on the
   wheel exactly once**. Operators: `+ − × ÷` and parentheses, reusable as
   often as you like. Fractions mid-expression are allowed — only the final
