@@ -13,8 +13,10 @@ crossed with Countdown's numbers round and the classroom game Krypto.
   often as you like. Fractions mid-expression are allowed — only the final
   value has to match.
 - Round 1 starts with 4 numbers. Each solve adds one more number to the
-  wheel — the target never changes — up through 8 numbers, with an optional
-  9-number bonus round.
+  wheel **and the target climbs** — roughly 101–200 with four numbers up
+  to 701–999 with eight, so every round demands a fresh structure instead
+  of building off your last solve. The optional 9-number bonus round
+  reaches for 1000+.
 - Shuffle rearranges the wheel; Hint reveals one step of a known solution.
 - Input however you like: tap the wheel and keypad, or use a physical
   keyboard (digits, `+ - * / ( )`, Backspace, Esc to clear — typed digits
@@ -29,8 +31,10 @@ crossed with Countdown's numbers round and the classroom game Krypto.
 - Wheel numbers are 2–12, no duplicates; 1 may appear only among the
   initial four (a later 1 would make every round trivially extendable
   via ×1).
-- Targets are three-digit (101–500): small numbers can't reach them by
-  addition alone, so every round requires multiplicative structure.
+- Targets rise with the wheel (101–200, 201–350, 351–500, 501–700,
+  701–999, bonus 1000–1499): always far above what the numbers can sum
+  to, so every round requires multiplicative structure, and the moving
+  goal keeps later rounds from being easy extensions of earlier ones.
 - Every round is guaranteed to have at least one integer-only solution.
   A subset-DP solver (Countdown-style) verifies this during generation:
   it picks a solvable 4-number set, then greedily adds numbers that keep
