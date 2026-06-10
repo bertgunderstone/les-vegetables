@@ -33,6 +33,9 @@ crossed with Countdown's numbers round and the classroom game Krypto.
   all game, so the newcomer is always obvious.
 - A collapsible scratch pad evaluates each line you scribble as you
   type (any numbers allowed there — it's scratch paper).
+- The timer is off by default — click the ⏱ chip in the status bar to
+  play timed (remembered between visits). Time appears in your results
+  and share text only when it's on.
 - Finish to see a spoiler-free share row — one square per round (green:
   clean solve, yellow: a hint or two, red: leaned on hints; star: bonus
   round) — plus your time.
