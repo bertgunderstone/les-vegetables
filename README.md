@@ -21,7 +21,8 @@ crossed with Countdown's numbers round and the classroom game Krypto.
 - Wheel numbers are 2–12, no duplicates; 1 may appear only among the
   initial four (a later 1 would make every round trivially extendable
   via ×1).
-- Targets are 13–99.
+- Targets are three-digit (101–500): small numbers can't reach them by
+  addition alone, so every round requires multiplicative structure.
 - Every round is guaranteed to have at least one integer-only solution.
   A subset-DP solver (Countdown-style) verifies this during generation:
   it picks a solvable 4-number set, then greedily adds numbers that keep

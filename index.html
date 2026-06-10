@@ -270,7 +270,7 @@ function evalTokens(tokens) {
 }
 
 /* ---------- solver: subset DP over non-negative integers ---------- */
-const VALUE_CAP = 600;
+const VALUE_CAP = 1200;
 
 // Returns map of value -> {expr, steps} reachable using ALL numbers of each subset.
 // solveDP(numbers) -> array indexed by bitmask of Maps.
@@ -323,7 +323,7 @@ function solveFor(numbers, target) {
 
 /* ---------- puzzle generation ---------- */
 const MIN_ROUND_SIZE = 4, MAX_ROUND_SIZE = 8, BONUS_SIZE = 9;
-const TARGET_MIN = 13, TARGET_MAX = 99;
+const TARGET_MIN = 101, TARGET_MAX = 500;
 
 function shuffled(arr) {
   const a = arr.slice();
