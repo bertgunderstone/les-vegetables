@@ -136,6 +136,50 @@
   }
   .hint-area div { padding: 2px 0; }
 
+  .scratch {
+    margin-top: 14px;
+    width: 100%;
+    max-width: 500px;
+    background: #fff;
+    border: 3px solid var(--ink);
+    border-radius: 14px;
+    box-shadow: 4px 4px 0 var(--purple);
+  }
+  .scratch summary {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 10px 16px;
+    user-select: none;
+  }
+  .scratch-body {
+    display: flex;
+    border-top: 3px solid var(--ink);
+  }
+  .scratch-body textarea {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    resize: vertical;
+    padding: 10px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    line-height: 1.5;
+    background: repeating-linear-gradient(transparent, transparent 1.45em, #f3ecdd 1.45em, #f3ecdd 1.5em);
+  }
+  .scratch-results {
+    width: 120px;
+    padding: 10px 12px;
+    border-left: 2px dashed var(--ink);
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    line-height: 1.5;
+    font-weight: bold;
+    color: var(--teal);
+    overflow: hidden;
+    white-space: pre;
+  }
+
   .overlay {
     position: fixed; inset: 0;
     background: rgba(26, 26, 46, 0.5);
@@ -207,6 +251,15 @@
 </div>
 
 <div class="hint-area" id="hintArea"></div>
+
+<details class="scratch" id="scratch">
+  <summary>✏️ Scratch pad</summary>
+  <div class="scratch-body">
+    <textarea id="scratchText" rows="5" wrap="off" spellcheck="false"
+      placeholder="scribble away… e.g. 7 × 12"></textarea>
+    <div class="scratch-results" id="scratchResults"></div>
+  </div>
+</details>
 
 <div class="solved-flash" id="solvedFlash">Bingpot!</div>
 
@@ -283,7 +336,7 @@ function evalTokens(tokens) {
 }
 
 /* ---------- solver: subset DP over non-negative integers ---------- */
-const VALUE_CAP = 1600;
+const VALUE_CAP = 1200;
 
 // Returns map of value -> {expr, steps} reachable using ALL numbers of each subset.
 // solveDP(numbers) -> array indexed by bitmask of Maps.
@@ -337,7 +390,7 @@ function solveFor(numbers, target) {
 /* ---------- puzzle generation ---------- */
 const MIN_ROUND_SIZE = 4, MAX_ROUND_SIZE = 8, BONUS_SIZE = 9;
 // The target climbs as the wheel grows: each round size has its own band.
-const TARGET_BANDS = { 4: [101, 200], 5: [201, 350], 6: [351, 500], 7: [501, 700], 8: [701, 999], 9: [1000, 1499] };
+const TARGET_BANDS = { 4: [13, 99], 5: [101, 200], 6: [201, 350], 7: [351, 500], 8: [501, 700], 9: [701, 999] };
 
 function shuffled(arr) {
   const a = arr.slice();
@@ -397,7 +450,9 @@ const overlayEl = document.getElementById('overlay');
 const overlayCardEl = document.getElementById('overlayCard');
 const solvedFlashEl = document.getElementById('solvedFlash');
 
-const WEDGE_COLORS = ['#ffd93d', '#f94c8d', '#2ec4b6', '#9b5de5', '#ff8811'];
+// One color per number, keyed to the order numbers join the wheel,
+// so each new number arrives in a fresh hue and keeps it all game.
+const WEDGE_COLORS = ['#ffd93d', '#f94c8d', '#2ec4b6', '#9b5de5', '#ff8811', '#8ac926', '#3a86ff', '#ff5d5d', '#06d6a0'];
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 let game = null;          // {numbers, rounds: [{target, solution}]}
@@ -469,7 +524,7 @@ function renderWheel() {
     const g = svgEl('g', { class: 'wedge' + (used ? ' used' : '') });
     g.appendChild(svgEl('path', {
       d: `M ${cx} ${cy} L ${x0} ${y0} A ${R} ${R} 0 ${step > Math.PI ? 1 : 0} 1 ${x1} ${y1} Z`,
-      fill: used ? 'var(--used)' : WEDGE_COLORS[pos % WEDGE_COLORS.length],
+      fill: used ? 'var(--used)' : WEDGE_COLORS[numIdx],
     }));
     const [tx, ty] = polar(cx, cy, (R + hubR) / 2, a0 + step / 2);
     const label = svgEl('text', { x: tx, y: ty });
@@ -647,6 +702,7 @@ function flushDigits() {
   commitDigits(true);
 }
 document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
   if (finished || advancing || !game || !overlayEl.classList.contains('hidden')) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const opMap = { '+': '+', '-': '−', '*': '×', x: '×', '/': '÷', '(': '(', ')': ')' };
@@ -695,6 +751,47 @@ document.getElementById('hintBtn').addEventListener('click', () => {
 });
 document.getElementById('newGameBtn').addEventListener('click', newGame);
 
+/* ---------- scratch pad ---------- */
+const scratchTextEl = document.getElementById('scratchText');
+const scratchResultsEl = document.getElementById('scratchResults');
+
+// Tokenize a free-text line into the same token shape evalTokens expects.
+// Any integers are allowed here — it's scratch paper.
+function tokenizeLine(line) {
+  const opMap = { '+': '+', '-': '−', '−': '−', '*': '×', x: '×', X: '×', '×': '×', '/': '÷', '÷': '÷' };
+  const toks = [];
+  let i = 0;
+  while (i < line.length) {
+    const ch = line[i];
+    if (/\s/.test(ch)) { i++; continue; }
+    if (/[0-9]/.test(ch)) {
+      let j = i;
+      while (j < line.length && /[0-9]/.test(line[j])) j++;
+      toks.push({ t: 'num', v: parseInt(line.slice(i, j), 10) });
+      i = j;
+      continue;
+    }
+    if (opMap[ch]) { toks.push({ t: 'op', v: opMap[ch] }); i++; continue; }
+    if (ch === '(' || ch === ')') { toks.push({ t: 'paren', v: ch }); i++; continue; }
+    if (ch === '=') break; // let people write "= 84" after their math; ignore the rest
+    return null; // unparseable scribble — show nothing for this line
+  }
+  return toks;
+}
+function renderScratch() {
+  const lines = scratchTextEl.value.split('\n');
+  scratchResultsEl.textContent = lines.map(line => {
+    const toks = tokenizeLine(line.trim());
+    if (!toks || toks.length === 0) return '';
+    const v = evalTokens(toks);
+    if (v === undefined) return '';
+    if (v === null) return '= ÷0!';
+    return '= ' + rStr(v);
+  }).join('\n');
+}
+scratchTextEl.addEventListener('input', renderScratch);
+scratchTextEl.addEventListener('scroll', () => { scratchResultsEl.scrollTop = scratchTextEl.scrollTop; });
+
 async function newGame() {
   clearInterval(timerInterval);
   finished = false;
@@ -708,6 +805,8 @@ async function newGame() {
   digitBuf = '';
   clearTimeout(digitTimer);
   hintAreaEl.innerHTML = '';
+  scratchTextEl.value = '';
+  renderScratch();
   showOverlay('<h2>Bingpot!</h2><p id="genProgress">Generating puzzle…</p>');
   try {
     game = await generateGame(msg => {
