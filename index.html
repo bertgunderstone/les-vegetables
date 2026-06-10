@@ -283,7 +283,7 @@ function evalTokens(tokens) {
 }
 
 /* ---------- solver: subset DP over non-negative integers ---------- */
-const VALUE_CAP = 1200;
+const VALUE_CAP = 1600;
 
 // Returns map of value -> {expr, steps} reachable using ALL numbers of each subset.
 // solveDP(numbers) -> array indexed by bitmask of Maps.
@@ -336,7 +336,8 @@ function solveFor(numbers, target) {
 
 /* ---------- puzzle generation ---------- */
 const MIN_ROUND_SIZE = 4, MAX_ROUND_SIZE = 8, BONUS_SIZE = 9;
-const TARGET_MIN = 101, TARGET_MAX = 500;
+// The target climbs as the wheel grows: each round size has its own band.
+const TARGET_BANDS = { 4: [101, 200], 5: [201, 350], 6: [351, 500], 7: [501, 700], 8: [701, 999], 9: [1000, 1499] };
 
 function shuffled(arr) {
   const a = arr.slice();
@@ -347,18 +348,24 @@ function shuffled(arr) {
   return a;
 }
 
+function pickTarget(fullMap, size) {
+  const [lo, hi] = TARGET_BANDS[size];
+  const options = [...fullMap.keys()].filter(v => v >= lo && v <= hi);
+  if (options.length === 0) return null;
+  const target = options[Math.floor(Math.random() * options.length)];
+  return { target, solution: fullMap.get(target) };
+}
+
 async function generateGame(onProgress) {
   for (let attempt = 0; attempt < 60; attempt++) {
     // First four: 1 is allowed here, and only here.
     const firstFour = shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).slice(0, 4);
     const memo4 = solveDP(firstFour);
-    const reachable = memo4[(1 << 4) - 1];
-    const targets = shuffled([...reachable.keys()].filter(v => v >= TARGET_MIN && v <= TARGET_MAX));
-    if (targets.length === 0) continue;
-    const target = targets[0];
+    const first = pickTarget(memo4[(1 << 4) - 1], 4);
+    if (!first) continue;
 
     const numbers = firstFour.slice();
-    const solutions = [reachable.get(target)];
+    const rounds = [first]; // per round: {target, solution}
     let ok = true;
     for (let size = MIN_ROUND_SIZE + 1; size <= BONUS_SIZE; size++) {
       onProgress(`Building round ${size}…`);
@@ -366,14 +373,15 @@ async function generateGame(onProgress) {
       const pool = shuffled([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(c => !numbers.includes(c)));
       let found = null;
       for (const cand of pool) {
-        const sol = solveFor(numbers.concat(cand), target);
-        if (sol) { found = { cand, sol }; break; }
+        const memo = solveDP(numbers.concat(cand));
+        const pick = pickTarget(memo[(1 << size) - 1], size);
+        if (pick) { found = { cand, pick }; break; }
       }
       if (!found) { ok = false; break; }
       numbers.push(found.cand);
-      solutions.push(found.sol);
+      rounds.push(found.pick);
     }
-    if (ok) return { numbers, target, solutions };
+    if (ok) return { numbers, rounds };
   }
   throw new Error('Could not generate a puzzle — please reload.');
 }
@@ -392,7 +400,8 @@ const solvedFlashEl = document.getElementById('solvedFlash');
 const WEDGE_COLORS = ['#ffd93d', '#f94c8d', '#2ec4b6', '#9b5de5', '#ff8811'];
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-let game = null;          // {numbers, target, solutions}
+let game = null;          // {numbers, rounds: [{target, solution}]}
+const curRound = () => game.rounds[roundSize - MIN_ROUND_SIZE];
 let roundSize = MIN_ROUND_SIZE;
 let tokens = [];
 let tileOrder = [];       // indices into game.numbers, display order
@@ -487,7 +496,7 @@ function renderWheel() {
   lbl.textContent = 'TARGET';
   wheelEl.appendChild(lbl);
   const tgt = svgEl('text', { x: cx, y: cy + 6, class: 'hub-target' });
-  tgt.textContent = game.target;
+  tgt.textContent = curRound().target;
   wheelEl.appendChild(tgt);
 }
 
@@ -510,14 +519,14 @@ function renderExpr() {
     liveValueEl.className = 'live-value';
   } else {
     liveValueEl.textContent = `= ${rStr(v)}`;
-    if (rEq(v, rat(game.target)) && !allUsed) {
+    if (rEq(v, rat(curRound().target)) && !allUsed) {
       liveValueEl.className = 'live-value match-partial';
       liveValueEl.textContent += ' — but you must use every number!';
     } else {
       liveValueEl.className = 'live-value';
     }
   }
-  if (v && allUsed && !advancing && rEq(v, rat(game.target))) onRoundSolved();
+  if (v && allUsed && !advancing && rEq(v, rat(curRound().target))) onRoundSolved();
 }
 
 function onRoundSolved() {
@@ -575,10 +584,12 @@ function endGame() {
   const squares = roundHints.slice(0, MAX_ROUND_SIZE - MIN_ROUND_SIZE + 1)
     .map(h => h === 0 ? '🟩' : (h <= 2 ? '🟨' : '🟥')).join('');
   const shareRow = squares + (bonusSolved ? '⭐' : '');
-  const shareText = `Bingpot! 🎯${game.target}\n${shareRow} ${elapsed}`;
+  const climbed = game.rounds.slice(0, roundHints.length).map(r => r.target);
+  const peak = climbed[climbed.length - 1];
+  const shareText = `Bingpot! 🎯${peak}\n${shareRow} ${elapsed}`;
   showOverlay(`
     <h2>Final score</h2>
-    <p>Target: <strong>${game.target}</strong></p>
+    <p>Targets climbed:<br><strong>${climbed.join(' → ')}</strong></p>
     <div class="share-row">${shareRow}</div>
     <p>Time: <strong>${elapsed}</strong> · Hints: <strong>${hintsUsed}</strong></p>
     <div class="actions">
@@ -675,7 +686,7 @@ document.getElementById('shuffleBtn').addEventListener('click', () => {
 });
 document.getElementById('hintBtn').addEventListener('click', () => {
   if (finished || !game) return;
-  const steps = game.solutions[roundSize - MIN_ROUND_SIZE].steps;
+  const steps = curRound().solution.steps;
   if (hintsShownThisRound >= steps.length) return;
   hintsUsed++;
   hintsShownThisRound++;
