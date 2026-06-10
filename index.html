@@ -100,7 +100,18 @@
     gap: 2px;
     padding: 6px 10px;
   }
+  .expr-display { cursor: text; }
   .expr-display .ph { color: #c4bcae; font-size: 1rem; font-weight: normal; font-style: italic; }
+  .expr-display .tok { padding: 0 4px; cursor: pointer; border-radius: 5px; }
+  .expr-display .tok:hover { background: #f3ecdd; }
+  .caret {
+    display: inline-block;
+    width: 3px; height: 1.25em;
+    background: var(--pink);
+    vertical-align: text-bottom;
+    animation: blink 1.1s steps(2, start) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
   .live-value { min-height: 28px; font-size: 1.05rem; font-weight: bold; color: var(--purple); margin-top: 8px; }
   .live-value.match-partial { color: var(--orange); }
 
@@ -362,10 +373,13 @@ function solveDP(numbers) {
   }
   return memo;
 }
+function exprFor(e1, e2, sym, parenLow) {
+  const wrap = (e) => (parenLow && e.steps.length > 0 && /[+−]/.test(stripParens(e.expr))) ? `(${e.expr})` : e.expr;
+  return `${wrap(e1)} ${sym} ${wrap(e2)}`;
+}
 function addResult(m, v, e1, e2, sym, parenLow) {
   if (v < 0 || v > VALUE_CAP || !Number.isInteger(v) || m.has(v)) return;
-  const wrap = (e) => (parenLow && e.steps.length > 0 && /[+−]/.test(stripParens(e.expr))) ? `(${e.expr})` : e.expr;
-  const expr = `${wrap(e1)} ${sym} ${wrap(e2)}`;
+  const expr = exprFor(e1, e2, sym, parenLow);
   const steps = e1.steps.concat(e2.steps, [`${e1.v} ${sym} ${e2.v} = ${v}`]);
   m.set(v, { expr, steps, v });
 }
@@ -385,6 +399,35 @@ function solveFor(numbers, target) {
   const memo = solveDP(numbers);
   const full = memo[(1 << numbers.length) - 1];
   return full.get(target) || null;
+}
+
+// Gather extra distinct expressions that hit the target, by re-walking the
+// partitions of the full set (subset maps keep one expression per value, but
+// different partitions still yield genuinely different solutions).
+function collectAlternates(memo, n, target, primaryExpr, max) {
+  const out = new Set();
+  const full = (1 << n) - 1;
+  outer:
+  for (let a = (full - 1) & full; a > 0; a = (a - 1) & full) {
+    const b = full ^ a;
+    if (a < b) continue;
+    for (const [x, ex] of memo[a]) {
+      for (const [y, ey] of memo[b]) {
+        const cands = [];
+        if (x + y === target) cands.push(exprFor(ex, ey, '+', false));
+        if (x * y === target) cands.push(exprFor(ex, ey, '×', true));
+        if (x - y === target) cands.push(exprFor(ex, ey, '−', false));
+        if (y - x === target) cands.push(exprFor(ey, ex, '−', false));
+        if (y !== 0 && x % y === 0 && x / y === target) cands.push(exprFor(ex, ey, '÷', true));
+        if (x !== 0 && y % x === 0 && y / x === target) cands.push(exprFor(ey, ex, '÷', true));
+        for (const c of cands) {
+          if (c !== primaryExpr) out.add(c);
+          if (out.size >= max) break outer;
+        }
+      }
+    }
+  }
+  return [...out];
 }
 
 /* ---------- puzzle generation ---------- */
@@ -409,6 +452,9 @@ function pickTarget(fullMap, size) {
   return { target, solution: fullMap.get(target) };
 }
 
+const BIG_NUMBERS = [25, 50, 75, 100];
+const MAX_ALTERNATES = 3;
+
 async function generateGame(onProgress) {
   for (let attempt = 0; attempt < 60; attempt++) {
     // First four: 1 is allowed here, and only here.
@@ -416,19 +462,29 @@ async function generateGame(onProgress) {
     const memo4 = solveDP(firstFour);
     const first = pickTarget(memo4[(1 << 4) - 1], 4);
     if (!first) continue;
+    first.alternates = collectAlternates(memo4, 4, first.target, first.solution.expr, MAX_ALTERNATES);
+
+    // One big number joins the wheel in round 4 or later (wheel size 7-9).
+    const bigSize = 7 + Math.floor(Math.random() * 3);
 
     const numbers = firstFour.slice();
-    const rounds = [first]; // per round: {target, solution}
+    const rounds = [first]; // per round: {target, solution, alternates}
     let ok = true;
     for (let size = MIN_ROUND_SIZE + 1; size <= BONUS_SIZE; size++) {
       onProgress(`Building round ${size}…`);
       await new Promise(r => setTimeout(r)); // let spinner paint
-      const pool = shuffled([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(c => !numbers.includes(c)));
+      const smalls = shuffled([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(c => !numbers.includes(c)));
+      // Prefer big numbers at the chosen size, falling back to smalls if none fits.
+      const pool = size === bigSize ? shuffled(BIG_NUMBERS).concat(smalls) : smalls;
       let found = null;
       for (const cand of pool) {
         const memo = solveDP(numbers.concat(cand));
         const pick = pickTarget(memo[(1 << size) - 1], size);
-        if (pick) { found = { cand, pick }; break; }
+        if (pick) {
+          pick.alternates = collectAlternates(memo, size, pick.target, pick.solution.expr, MAX_ALTERNATES);
+          found = { cand, pick };
+          break;
+        }
       }
       if (!found) { ok = false; break; }
       numbers.push(found.cand);
@@ -459,6 +515,7 @@ let game = null;          // {numbers, rounds: [{target, solution}]}
 const curRound = () => game.rounds[roundSize - MIN_ROUND_SIZE];
 let roundSize = MIN_ROUND_SIZE;
 let tokens = [];
+let caret = 0;            // insertion point within tokens
 let tileOrder = [];       // indices into game.numbers, display order
 let hintsUsed = 0;
 let hintsShownThisRound = 0;
@@ -529,6 +586,7 @@ function renderWheel() {
     const [tx, ty] = polar(cx, cy, (R + hubR) / 2, a0 + step / 2);
     const label = svgEl('text', { x: tx, y: ty });
     label.textContent = game.numbers[numIdx];
+    if (game.numbers[numIdx] >= 25) label.style.fontSize = '24px'; // big numbers in narrow wedges
     g.appendChild(label);
     g.addEventListener('click', () => {
       if (finished || advancing) return;
@@ -536,9 +594,9 @@ function renderWheel() {
       if (used) {
         // tap a used wedge to take that number back out of the expression
         const ti = tokens.findIndex(tk => tk.t === 'num' && tk.tileId === numIdx);
-        if (ti >= 0) tokens.splice(ti, 1);
+        if (ti >= 0) removeTokenAt(ti);
       } else {
-        tokens.push({ t: 'num', v: game.numbers[numIdx], tileId: numIdx });
+        insertToken({ t: 'num', v: game.numbers[numIdx], tileId: numIdx });
       }
       renderExpr();
     });
@@ -555,31 +613,54 @@ function renderWheel() {
   wheelEl.appendChild(tgt);
 }
 
+function insertToken(tok) {
+  tokens.splice(caret, 0, tok);
+  caret++;
+}
+function removeTokenAt(i) {
+  tokens.splice(i, 1);
+  if (i < caret) caret--;
+}
+
 function renderExpr() {
   renderWheel();
+  exprDisplayEl.innerHTML = '';
   if (tokens.length === 0) {
     exprDisplayEl.innerHTML = '<span class="ph">tap numbers and operators…</span>';
   } else {
-    exprDisplayEl.textContent = tokens.map(tk => tk.v).join(' ');
+    for (let i = 0; i <= tokens.length; i++) {
+      if (i === caret) {
+        const c = document.createElement('span');
+        c.className = 'caret';
+        exprDisplayEl.appendChild(c);
+      }
+      if (i < tokens.length) {
+        const s = document.createElement('span');
+        s.className = 'tok';
+        s.textContent = tokens[i].v;
+        const idx = i;
+        s.addEventListener('click', (e) => {
+          if (finished || advancing) return;
+          const rect = s.getBoundingClientRect();
+          caret = e.clientX < rect.left + rect.width / 2 ? idx : idx + 1;
+          renderExpr();
+        });
+        exprDisplayEl.appendChild(s);
+      }
+    }
   }
+  // Only reveal the total once the full equation is in — no intermediate readouts.
   const v = evalTokens(tokens);
   const allUsed = tokens.filter(tk => tk.t === 'num').length === roundSize;
-  if (tokens.length === 0) {
+  liveValueEl.className = 'live-value';
+  if (!allUsed || tokens.length === 0) {
     liveValueEl.textContent = '';
   } else if (v === undefined) {
     liveValueEl.textContent = '…';
-    liveValueEl.className = 'live-value';
   } else if (v === null) {
     liveValueEl.textContent = 'undefined (division by zero)';
-    liveValueEl.className = 'live-value';
   } else {
     liveValueEl.textContent = `= ${rStr(v)}`;
-    if (rEq(v, rat(curRound().target)) && !allUsed) {
-      liveValueEl.className = 'live-value match-partial';
-      liveValueEl.textContent += ' — but you must use every number!';
-    } else {
-      liveValueEl.className = 'live-value';
-    }
   }
   if (v && allUsed && !advancing && rEq(v, rat(curRound().target))) onRoundSolved();
 }
@@ -587,18 +668,34 @@ function renderExpr() {
 function onRoundSolved() {
   advancing = true;
   roundHints.push(hintsShownThisRound);
+  const target = curRound().target;
+  const playerExpr = tokens.map(tk => tk.v).join(' ');
+  const norm = s => s.replace(/\s+/g, '');
+  const alts = (curRound().alternates || []).filter(a => norm(a) !== norm(playerExpr));
   solvedFlashEl.classList.add('show');
-  setTimeout(() => solvedFlashEl.classList.remove('show'), 1200);
+  setTimeout(() => solvedFlashEl.classList.remove('show'), 1000);
   setTimeout(() => {
-    if (roundSize === MAX_ROUND_SIZE) {
-      promptBonus();
-    } else if (roundSize === BONUS_SIZE) {
-      bonusSolved = true;
-      endGame();
-    } else {
-      advanceRound();
-    }
-  }, 900);
+    const altHtml = alts.length
+      ? `<p><strong>Other ways to ${target}:</strong></p>` +
+        alts.map(a => `<p>${a} = ${target}</p>`).join('')
+      : `<p>And we couldn't find another way to do it — take a bow.</p>`;
+    showOverlay(`
+      <h2>Bingpot!</h2>
+      <p>You found: <strong>${playerExpr} = ${target}</strong></p>
+      ${altHtml}
+      <div class="actions"><button id="contBtn">Continue</button></div>`);
+    document.getElementById('contBtn').addEventListener('click', () => {
+      hideOverlay();
+      if (roundSize === MAX_ROUND_SIZE) {
+        promptBonus();
+      } else if (roundSize === BONUS_SIZE) {
+        bonusSolved = true;
+        endGame();
+      } else {
+        advanceRound();
+      }
+    });
+  }, 800);
 }
 
 function advanceRound() {
@@ -606,6 +703,7 @@ function advanceRound() {
   roundSize++;
   tileOrder.push(roundSize - 1);
   tokens = [];
+  caret = 0;
   hintsShownThisRound = 0;
   hintAreaEl.innerHTML = '';
   renderRounds();
@@ -662,7 +760,7 @@ function endGame() {
 /* ---------- controls ---------- */
 function pushOp(v) {
   flushDigits();
-  tokens.push(v === '(' || v === ')' ? { t: 'paren', v } : { t: 'op', v });
+  insertToken(v === '(' || v === ')' ? { t: 'paren', v } : { t: 'op', v });
   renderExpr();
 }
 document.querySelectorAll('.keypad button[data-op]').forEach(btn => {
@@ -674,7 +772,12 @@ document.querySelectorAll('.keypad button[data-op]').forEach(btn => {
 document.getElementById('backspace').addEventListener('click', () => {
   if (finished || advancing || !game) return;
   if (digitBuf) { clearTimeout(digitTimer); digitBuf = ''; return; }
-  tokens.pop();
+  if (caret > 0) removeTokenAt(caret - 1);
+  renderExpr();
+});
+exprDisplayEl.addEventListener('click', (e) => {
+  if (e.target !== exprDisplayEl || finished || advancing || !game) return;
+  caret = tokens.length;
   renderExpr();
 });
 
@@ -690,7 +793,7 @@ function commitDigits(force) {
   const extendable = avail.some(idx =>
     String(game.numbers[idx]).startsWith(digitBuf) && String(game.numbers[idx]) !== digitBuf);
   if (exact !== undefined && (!extendable || force)) {
-    tokens.push({ t: 'num', v: game.numbers[exact], tileId: exact });
+    insertToken({ t: 'num', v: game.numbers[exact], tileId: exact });
     digitBuf = '';
     renderExpr();
   } else if (!extendable || force) {
@@ -718,13 +821,24 @@ document.addEventListener('keydown', (e) => {
   } else if (e.key === 'Backspace') {
     e.preventDefault();
     if (digitBuf) { clearTimeout(digitTimer); digitBuf = ''; return; }
-    tokens.pop();
+    if (caret > 0) removeTokenAt(caret - 1);
     renderExpr();
   } else if (e.key === 'Escape') {
     e.preventDefault();
     clearTimeout(digitTimer);
     digitBuf = '';
     tokens = [];
+    caret = 0;
+    renderExpr();
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    flushDigits();
+    caret = Math.max(0, caret - 1);
+    renderExpr();
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    flushDigits();
+    caret = Math.min(tokens.length, caret + 1);
     renderExpr();
   }
 });
@@ -733,6 +847,7 @@ document.getElementById('clearBtn').addEventListener('click', () => {
   clearTimeout(digitTimer);
   digitBuf = '';
   tokens = [];
+  caret = 0;
   renderExpr();
 });
 document.getElementById('shuffleBtn').addEventListener('click', () => {
@@ -801,6 +916,7 @@ async function newGame() {
   hintsUsed = 0;
   hintsShownThisRound = 0;
   tokens = [];
+  caret = 0;
   roundHints = [];
   digitBuf = '';
   clearTimeout(digitTimer);
