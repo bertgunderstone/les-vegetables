@@ -3,153 +3,166 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Numbuffalo</title>
+<title>Bingpot!</title>
 <style>
   :root {
-    --paper: #faf7f0;
-    --ink: #1a1a1a;
-    --tile: #f6c945;
-    --tile-used: #e8e2d4;
-    --accent: #2b6cb0;
-    --good: #2f855a;
+    --paper: #fdf6ec;
+    --ink: #1a1a2e;
+    --pink: #f94c8d;
+    --teal: #2ec4b6;
+    --yellow: #ffd93d;
+    --purple: #9b5de5;
+    --orange: #ff8811;
+    --used: #e5dfd2;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: var(--paper);
+    background-color: var(--paper);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="260" height="260"><g fill="none" stroke-width="3" opacity="0.22"><circle cx="42" cy="38" r="11" stroke="%23f94c8d"/><path d="M158 26 l13 22 h-26 z" stroke="%232ec4b6"/><path d="M28 176 q10 -15 20 0 t20 0" stroke="%239b5de5"/><path d="M196 152 h18 m-9 -9 v18" stroke="%23ff8811"/><circle cx="124" cy="112" r="5" fill="%23ffd93d" stroke="none"/><circle cx="222" cy="218" r="5" fill="%232ec4b6" stroke="none"/><path d="M70 230 l10 -16 l10 16" stroke="%23ffd93d"/></g></svg>');
     color: var(--ink);
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: 'Trebuchet MS', 'Century Gothic', Futura, Verdana, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
     padding: 16px;
   }
-  header { text-align: center; margin-bottom: 8px; }
-  h1 { font-size: 2rem; letter-spacing: 0.02em; }
-  .tagline { font-style: italic; font-size: 0.9rem; color: #555; }
+  header { text-align: center; margin-bottom: 6px; }
+  h1 {
+    font-size: 2.8rem;
+    letter-spacing: 0.04em;
+    display: inline-block;
+    transform: rotate(-2deg);
+    text-shadow: 4px 4px 0 var(--pink);
+  }
+  .tagline { font-weight: bold; font-size: 0.9rem; color: var(--purple); letter-spacing: 0.06em; }
 
   .status-bar {
     display: flex;
-    gap: 16px;
+    gap: 18px;
     align-items: center;
-    font-size: 0.9rem;
-    margin: 10px 0 4px;
+    font-weight: bold;
+    font-size: 1rem;
+    margin: 12px 0 4px;
   }
-  .rounds { display: flex; gap: 6px; }
+  .rounds { display: flex; gap: 7px; }
   .round-dot {
-    width: 22px; height: 22px;
-    border: 1.5px solid var(--ink);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.7rem;
-  }
-  .round-dot.done { background: var(--ink); color: var(--paper); }
-  .round-dot.current { background: var(--tile); }
-  .round-dot.bonus { border-style: dashed; }
-
-  .wheel-wrap { position: relative; width: 340px; height: 340px; margin: 12px 0; }
-  .target {
-    position: absolute;
-    left: 50%; top: 50%;
-    transform: translate(-50%, -50%);
-    width: 96px; height: 96px;
+    width: 26px; height: 26px;
     border: 2.5px solid var(--ink);
     border-radius: 50%;
     background: #fff;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    font-size: 2rem; font-weight: bold;
-  }
-  .target small { font-size: 0.6rem; font-weight: normal; letter-spacing: 0.1em; }
-  .tile {
-    position: absolute;
-    width: 58px; height: 58px;
-    border-radius: 50%;
-    background: var(--tile);
-    border: 1.5px solid var(--ink);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; font-weight: bold;
-    cursor: pointer;
-    user-select: none;
-    transition: transform 0.35s ease, background 0.2s, opacity 0.2s;
+    font-size: 0.75rem;
+    font-weight: bold;
   }
-  .tile.used { background: var(--tile-used); color: #999; cursor: default; }
-  .tile:not(.used):hover { transform: scale(1.08); }
+  .round-dot.done { background: var(--ink); color: var(--yellow); }
+  .round-dot.current { background: var(--yellow); }
+  .round-dot.bonus { border-style: dashed; }
+  #timer {
+    background: #fff;
+    border: 2.5px solid var(--ink);
+    border-radius: 10px;
+    padding: 2px 12px;
+    box-shadow: 3px 3px 0 var(--teal);
+  }
 
-  .expr-area { width: 100%; max-width: 480px; text-align: center; }
+  .wheel-wrap { margin: 12px 0; }
+  #wheel { display: block; }
+  .wedge { cursor: pointer; }
+  .wedge path { stroke: var(--ink); stroke-width: 3; transition: filter 0.15s; }
+  .wedge text {
+    font-family: inherit;
+    font-size: 32px;
+    font-weight: bold;
+    fill: var(--ink);
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    user-select: none;
+  }
+  .wedge:not(.used):hover path { filter: brightness(1.12); }
+  .wedge.used { cursor: default; }
+  .wedge.used text { fill: #aaa39a; }
+  .hub-label { font-size: 11px; font-weight: bold; letter-spacing: 2px; text-anchor: middle; fill: var(--purple); }
+  .hub-target { font-size: 34px; font-weight: bold; text-anchor: middle; dominant-baseline: central; fill: var(--ink); }
+
+  .expr-area { width: 100%; max-width: 500px; text-align: center; }
   .expr-display {
-    min-height: 48px;
-    border-bottom: 2px solid var(--ink);
+    min-height: 56px;
+    background: #fff;
+    border: 3px solid var(--ink);
+    border-radius: 14px;
+    box-shadow: 4px 4px 0 var(--teal);
     font-size: 1.6rem;
+    font-weight: bold;
     display: flex; align-items: center; justify-content: center;
     flex-wrap: wrap;
     gap: 2px;
-    padding: 4px;
+    padding: 6px 10px;
   }
-  .expr-display .ph { color: #bbb; font-size: 1rem; font-style: italic; }
-  .live-value { min-height: 26px; font-size: 1rem; color: var(--accent); margin-top: 4px; }
-  .live-value.match-partial { color: #b7791f; }
+  .expr-display .ph { color: #c4bcae; font-size: 1rem; font-weight: normal; font-style: italic; }
+  .live-value { min-height: 28px; font-size: 1.05rem; font-weight: bold; color: var(--purple); margin-top: 8px; }
+  .live-value.match-partial { color: var(--orange); }
 
   .keypad {
     display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
-    margin-top: 12px;
+    margin-top: 14px;
   }
-  .keypad button {
+  .keypad button, .actions button {
     font-family: inherit;
-    font-size: 1.3rem;
-    width: 52px; height: 46px;
+    font-weight: bold;
     background: #fff;
-    border: 1.5px solid var(--ink);
-    border-radius: 8px;
+    border: 3px solid var(--ink);
+    border-radius: 12px;
     cursor: pointer;
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: transform 0.08s, box-shadow 0.08s;
   }
-  .keypad button:hover { background: #f0ece0; }
-  .actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
-  .actions button {
-    font-family: inherit;
-    font-size: 0.95rem;
-    padding: 8px 16px;
-    background: #fff;
-    border: 1.5px solid var(--ink);
-    border-radius: 20px;
-    cursor: pointer;
-  }
-  .actions button:hover { background: #f0ece0; }
+  .keypad button { font-size: 1.3rem; width: 54px; height: 48px; }
+  .keypad button:nth-child(odd) { box-shadow: 3px 3px 0 var(--pink); }
+  .keypad button:nth-child(even) { box-shadow: 3px 3px 0 var(--purple); }
+  .keypad button:hover, .actions button:hover { background: var(--yellow); }
+  .keypad button:active, .actions button:active { transform: translate(3px, 3px); box-shadow: none; }
+  .actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+  .actions button { font-size: 0.95rem; padding: 9px 18px; box-shadow: 3px 3px 0 var(--orange); }
 
   .hint-area {
-    margin-top: 12px;
-    max-width: 480px;
+    margin-top: 14px;
+    max-width: 500px;
     width: 100%;
     font-size: 0.95rem;
     text-align: center;
-    color: #444;
+    color: var(--ink);
   }
   .hint-area div { padding: 2px 0; }
 
   .overlay {
     position: fixed; inset: 0;
-    background: rgba(20,20,20,0.45);
+    background: rgba(26, 26, 46, 0.5);
     display: flex; align-items: center; justify-content: center;
     z-index: 10;
   }
   .overlay.hidden { display: none; }
   .card {
     background: var(--paper);
-    border: 2px solid var(--ink);
-    border-radius: 12px;
-    padding: 28px 32px;
-    max-width: 380px;
+    border: 3px solid var(--ink);
+    border-radius: 16px;
+    box-shadow: 7px 7px 0 var(--yellow);
+    padding: 30px 34px;
+    max-width: 400px;
     text-align: center;
   }
-  .card h2 { margin-bottom: 12px; }
+  .card h2 { margin-bottom: 12px; transform: rotate(-1deg); text-shadow: 2px 2px 0 var(--teal); }
   .card p { margin-bottom: 10px; line-height: 1.4; }
-  .card .actions { margin-top: 16px; }
+  .card .actions { margin-top: 18px; }
   .solved-flash {
     position: fixed; left: 50%; top: 18%;
-    transform: translateX(-50%);
-    background: var(--good); color: #fff;
-    padding: 10px 26px; border-radius: 24px;
-    font-size: 1.2rem;
+    transform: translateX(-50%) rotate(-2deg);
+    background: var(--pink); color: #fff;
+    border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: 10px 28px; border-radius: 14px;
+    font-size: 1.3rem; font-weight: bold;
     opacity: 0; pointer-events: none;
     transition: opacity 0.3s;
     z-index: 5;
@@ -160,8 +173,8 @@
 <body>
 
 <header>
-  <h1>Numbuffalo</h1>
-  <div class="tagline">use every number to hit the target</div>
+  <h1>Bingpot!</h1>
+  <div class="tagline">USE EVERY NUMBER TO HIT THE TARGET</div>
 </header>
 
 <div class="status-bar">
@@ -169,8 +182,8 @@
   <div id="timer">0:00</div>
 </div>
 
-<div class="wheel-wrap" id="wheel">
-  <div class="target" id="target"><small>TARGET</small><span id="targetNum">–</span></div>
+<div class="wheel-wrap">
+  <svg id="wheel" width="340" height="340" viewBox="0 0 340 340"></svg>
 </div>
 
 <div class="expr-area">
@@ -195,7 +208,7 @@
 
 <div class="hint-area" id="hintArea"></div>
 
-<div class="solved-flash" id="solvedFlash">Solved!</div>
+<div class="solved-flash" id="solvedFlash">Bingpot!</div>
 
 <div class="overlay hidden" id="overlay">
   <div class="card" id="overlayCard"></div>
@@ -270,7 +283,7 @@ function evalTokens(tokens) {
 }
 
 /* ---------- solver: subset DP over non-negative integers ---------- */
-const VALUE_CAP = 600;
+const VALUE_CAP = 1200;
 
 // Returns map of value -> {expr, steps} reachable using ALL numbers of each subset.
 // solveDP(numbers) -> array indexed by bitmask of Maps.
@@ -323,7 +336,7 @@ function solveFor(numbers, target) {
 
 /* ---------- puzzle generation ---------- */
 const MIN_ROUND_SIZE = 4, MAX_ROUND_SIZE = 8, BONUS_SIZE = 9;
-const TARGET_MIN = 13, TARGET_MAX = 99;
+const TARGET_MIN = 101, TARGET_MAX = 500;
 
 function shuffled(arr) {
   const a = arr.slice();
@@ -367,7 +380,6 @@ async function generateGame(onProgress) {
 
 /* ---------- game state & UI ---------- */
 const wheelEl = document.getElementById('wheel');
-const targetNumEl = document.getElementById('targetNum');
 const exprDisplayEl = document.getElementById('exprDisplay');
 const liveValueEl = document.getElementById('liveValue');
 const roundsEl = document.getElementById('rounds');
@@ -376,6 +388,9 @@ const hintAreaEl = document.getElementById('hintArea');
 const overlayEl = document.getElementById('overlay');
 const overlayCardEl = document.getElementById('overlayCard');
 const solvedFlashEl = document.getElementById('solvedFlash');
+
+const WEDGE_COLORS = ['#ffd93d', '#f94c8d', '#2ec4b6', '#9b5de5', '#ff8811'];
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 let game = null;          // {numbers, target, solutions}
 let roundSize = MIN_ROUND_SIZE;
@@ -416,26 +431,54 @@ function renderRounds() {
   }
 }
 
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+function polar(cx, cy, r, a) {
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+}
+
 function renderWheel() {
-  wheelEl.querySelectorAll('.tile').forEach(t => t.remove());
-  const cx = 170, cy = 170, radius = 132;
+  wheelEl.innerHTML = '';
+  if (!game) return;
+  const cx = 170, cy = 170, R = 152, hubR = 56;
   const count = tileOrder.length;
+  const step = (Math.PI * 2) / count;
+
   tileOrder.forEach((numIdx, pos) => {
-    const angle = (Math.PI * 2 * pos) / count - Math.PI / 2;
-    const tile = document.createElement('div');
-    tile.className = 'tile';
-    tile.textContent = game.numbers[numIdx];
-    tile.dataset.numIdx = numIdx;
-    tile.style.left = `${cx + radius * Math.cos(angle) - 29}px`;
-    tile.style.top = `${cy + radius * Math.sin(angle) - 29}px`;
-    if (tokens.some(tk => tk.t === 'num' && tk.tileId === numIdx)) tile.classList.add('used');
-    tile.addEventListener('click', () => {
-      if (tile.classList.contains('used') || finished) return;
+    const a0 = -Math.PI / 2 + step * pos;
+    const a1 = a0 + step;
+    const [x0, y0] = polar(cx, cy, R, a0);
+    const [x1, y1] = polar(cx, cy, R, a1);
+    const used = tokens.some(tk => tk.t === 'num' && tk.tileId === numIdx);
+
+    const g = svgEl('g', { class: 'wedge' + (used ? ' used' : '') });
+    g.appendChild(svgEl('path', {
+      d: `M ${cx} ${cy} L ${x0} ${y0} A ${R} ${R} 0 ${step > Math.PI ? 1 : 0} 1 ${x1} ${y1} Z`,
+      fill: used ? 'var(--used)' : WEDGE_COLORS[pos % WEDGE_COLORS.length],
+    }));
+    const [tx, ty] = polar(cx, cy, (R + hubR) / 2, a0 + step / 2);
+    const label = svgEl('text', { x: tx, y: ty });
+    label.textContent = game.numbers[numIdx];
+    g.appendChild(label);
+    g.addEventListener('click', () => {
+      if (used || finished || advancing) return;
       tokens.push({ t: 'num', v: game.numbers[numIdx], tileId: numIdx });
       renderExpr();
     });
-    wheelEl.appendChild(tile);
+    wheelEl.appendChild(g);
   });
+
+  // center hub with the target
+  wheelEl.appendChild(svgEl('circle', { cx, cy, r: hubR, fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 3 }));
+  const lbl = svgEl('text', { x: cx, y: cy - 24, class: 'hub-label' });
+  lbl.textContent = 'TARGET';
+  wheelEl.appendChild(lbl);
+  const tgt = svgEl('text', { x: cx, y: cy + 6, class: 'hub-target' });
+  tgt.textContent = game.target;
+  wheelEl.appendChild(tgt);
 }
 
 function renderExpr() {
@@ -518,7 +561,7 @@ function endGame() {
   const elapsed = fmtTime(Date.now() - startTime);
   renderRounds();
   const bonusLine = bonusPlayed ? (bonusSolved ? ' +★' : '') : '';
-  const shareText = `Numbuffalo — target ${game.target}\n8/8${bonusLine} · ${elapsed} · ${hintsUsed} hint${hintsUsed === 1 ? '' : 's'}`;
+  const shareText = `Bingpot! — target ${game.target}\n8/8${bonusLine} · ${elapsed} · ${hintsUsed} hint${hintsUsed === 1 ? '' : 's'}`;
   showOverlay(`
     <h2>Final score</h2>
     <p>Target: <strong>${game.target}</strong></p>
@@ -580,7 +623,7 @@ async function newGame() {
   hintsShownThisRound = 0;
   tokens = [];
   hintAreaEl.innerHTML = '';
-  showOverlay('<h2>Numbuffalo</h2><p id="genProgress">Generating puzzle…</p>');
+  showOverlay('<h2>Bingpot!</h2><p id="genProgress">Generating puzzle…</p>');
   try {
     game = await generateGame(msg => {
       const p = document.getElementById('genProgress');
@@ -593,7 +636,6 @@ async function newGame() {
   hideOverlay();
   roundSize = MIN_ROUND_SIZE;
   tileOrder = [0, 1, 2, 3];
-  targetNumEl.textContent = game.target;
   startTime = Date.now();
   timerInterval = setInterval(tickTimer, 250);
   renderRounds();
