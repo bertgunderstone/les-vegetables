@@ -361,13 +361,19 @@ function solveDP(numbers) {
   }
   return memo;
 }
-function exprFor(e1, e2, sym, parenLow) {
-  const wrap = (e) => (parenLow && e.steps.length > 0 && /[+−]/.test(stripParens(e.expr))) ? `(${e.expr})` : e.expr;
-  return `${wrap(e1)} ${sym} ${wrap(e2)}`;
+function exprFor(e1, e2, sym) {
+  // Parenthesize operands exactly where precedence demands it.
+  const topLow = (e) => e.steps.length > 0 && /[+−]/.test(stripParens(e.expr));
+  const compound = (e) => e.steps.length > 0;
+  let lp = false, rp = false;
+  if (sym === '−') rp = topLow(e2);
+  else if (sym === '×') { lp = topLow(e1); rp = topLow(e2); }
+  else if (sym === '÷') { lp = topLow(e1); rp = compound(e2); }
+  return `${lp ? `(${e1.expr})` : e1.expr} ${sym} ${rp ? `(${e2.expr})` : e2.expr}`;
 }
-function addResult(m, v, e1, e2, sym, parenLow) {
+function addResult(m, v, e1, e2, sym) {
   if (v < 0 || v > VALUE_CAP || !Number.isInteger(v) || m.has(v)) return;
-  const expr = exprFor(e1, e2, sym, parenLow);
+  const expr = exprFor(e1, e2, sym);
   const steps = e1.steps.concat(e2.steps, [`${e1.v} ${sym} ${e2.v} = ${v}`]);
   m.set(v, { expr, steps, v });
 }
@@ -377,11 +383,11 @@ function stripParens(s) {
   return s;
 }
 function tryCombine(m, x, ex, y, ey) {
-  addResult(m, x + y, ex, ey, '+', false);
-  addResult(m, x * y, ex, ey, '×', true);
-  if (x >= y) addResult(m, x - y, ex, ey, '−', false); else addResult(m, y - x, ey, ex, '−', false);
-  if (y !== 0 && x % y === 0) addResult(m, x / y, ex, ey, '÷', true);
-  if (x !== 0 && y % x === 0) addResult(m, y / x, ey, ex, '÷', true);
+  addResult(m, x + y, ex, ey, '+');
+  addResult(m, x * y, ex, ey, '×');
+  if (x >= y) addResult(m, x - y, ex, ey, '−'); else addResult(m, y - x, ey, ex, '−');
+  if (y !== 0 && x % y === 0) addResult(m, x / y, ex, ey, '÷');
+  if (x !== 0 && y % x === 0) addResult(m, y / x, ey, ex, '÷');
 }
 function solveFor(numbers, target) {
   const memo = solveDP(numbers);
@@ -389,11 +395,59 @@ function solveFor(numbers, target) {
   return full.get(target) || null;
 }
 
-// Gather extra distinct expressions that hit the target, by re-walking the
-// partitions of the full set (subset maps keep one expression per value, but
-// different partitions still yield genuinely different solutions).
+// Canonical key for an expression string: sums and products are flattened
+// into sorted multisets of signed terms, so "a − b − c", "a − c − b" and
+// "a − (b + c)" all share one key. Reorderings/reassociations dedupe away.
+function canonKey(str) {
+  let i = 0;
+  const ws = () => { while (str[i] === ' ') i++; };
+  function atom() {
+    ws();
+    if (str[i] === '(') { i++; const n = expr(); ws(); i++; return n; }
+    let j = i;
+    while (j < str.length && /[0-9]/.test(str[j])) j++;
+    const key = str.slice(i, j);
+    i = j;
+    return { key, sum: null, prod: null };
+  }
+  const prodParts = (n, s) => n.prod ? n.prod.map(p => ({ s: p.s * s, n: p.n })) : [{ s, n }];
+  const sumParts = (n, s) => n.sum ? n.sum.map(p => ({ s: p.s * s, n: p.n })) : [{ s, n }];
+  function term() {
+    let parts = prodParts(atom(), 1);
+    while (true) {
+      ws();
+      if (str[i] === '×' || str[i] === '÷') {
+        const s = str[i] === '×' ? 1 : -1;
+        i++;
+        parts = parts.concat(prodParts(atom(), s));
+      } else break;
+    }
+    if (parts.length === 1 && parts[0].s === 1) return parts[0].n;
+    const key = 'P[' + parts.map(p => (p.s > 0 ? '*' : '/') + p.n.key).sort().join(',') + ']';
+    return { key, sum: null, prod: parts };
+  }
+  function expr() {
+    let parts = sumParts(term(), 1);
+    while (true) {
+      ws();
+      if (str[i] === '+' || str[i] === '−') {
+        const s = str[i] === '+' ? 1 : -1;
+        i++;
+        parts = parts.concat(sumParts(term(), s));
+      } else break;
+    }
+    if (parts.length === 1 && parts[0].s === 1) return parts[0].n;
+    const key = 'S[' + parts.map(p => (p.s > 0 ? '+' : '-') + p.n.key).sort().join(',') + ']';
+    return { key, sum: parts, prod: null };
+  }
+  return expr().key;
+}
+
+// Gather extra genuinely-different expressions that hit the target, by
+// re-walking the partitions of the full set and deduping canonically.
 function collectAlternates(memo, n, target, primaryExpr, max) {
-  const out = new Set();
+  const seen = new Set([canonKey(primaryExpr)]);
+  const out = [];
   const full = (1 << n) - 1;
   outer:
   for (let a = (full - 1) & full; a > 0; a = (a - 1) & full) {
@@ -402,20 +456,24 @@ function collectAlternates(memo, n, target, primaryExpr, max) {
     for (const [x, ex] of memo[a]) {
       for (const [y, ey] of memo[b]) {
         const cands = [];
-        if (x + y === target) cands.push(exprFor(ex, ey, '+', false));
-        if (x * y === target) cands.push(exprFor(ex, ey, '×', true));
-        if (x - y === target) cands.push(exprFor(ex, ey, '−', false));
-        if (y - x === target) cands.push(exprFor(ey, ex, '−', false));
-        if (y !== 0 && x % y === 0 && x / y === target) cands.push(exprFor(ex, ey, '÷', true));
-        if (x !== 0 && y % x === 0 && y / x === target) cands.push(exprFor(ey, ex, '÷', true));
+        if (x + y === target) cands.push(exprFor(ex, ey, '+'));
+        if (x * y === target) cands.push(exprFor(ex, ey, '×'));
+        if (x - y === target) cands.push(exprFor(ex, ey, '−'));
+        if (y - x === target) cands.push(exprFor(ey, ex, '−'));
+        if (y !== 0 && x % y === 0 && x / y === target) cands.push(exprFor(ex, ey, '÷'));
+        if (x !== 0 && y % x === 0 && y / x === target) cands.push(exprFor(ey, ex, '÷'));
         for (const c of cands) {
-          if (c !== primaryExpr) out.add(c);
-          if (out.size >= max) break outer;
+          const k = canonKey(c);
+          if (!seen.has(k)) {
+            seen.add(k);
+            out.push(c);
+            if (out.length >= max) break outer;
+          }
         }
       }
     }
   }
-  return [...out];
+  return out;
 }
 
 /* ---------- puzzle generation ---------- */
@@ -671,8 +729,9 @@ function onRoundSolved() {
   roundHints.push(hintsShownThisRound);
   const target = curRound().target;
   const playerExpr = tokens.map(tk => tk.v).join(' ');
-  const norm = s => s.replace(/\s+/g, '');
-  const alts = (curRound().alternates || []).filter(a => norm(a) !== norm(playerExpr));
+  let playerKey = null;
+  try { playerKey = canonKey(playerExpr); } catch (e) { /* display-only dedupe */ }
+  const alts = (curRound().alternates || []).filter(a => canonKey(a) !== playerKey);
   solvedFlashEl.classList.add('show');
   setTimeout(() => solvedFlashEl.classList.remove('show'), 1000);
   setTimeout(() => {
