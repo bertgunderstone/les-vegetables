@@ -10,8 +10,8 @@ crossed with Countdown's numbers round and the classroom game Krypto.
   chunky outlines, geometric confetti.
 - Build an expression that equals the target, using **every number on the
   wheel exactly once**. Operators: `+ − × ÷` and parentheses, reusable as
-  often as you like. Fractions mid-expression are allowed — only the final
-  value has to match.
+  often as you like. No fractions, like Countdown: every division must
+  come out even, or the expression doesn't count.
 - Round 1 starts with 4 numbers. Each solve adds one more number to the
   wheel **and the target climbs** — two digits with four numbers, up to
   501–700 with eight — so every round demands a fresh structure instead
