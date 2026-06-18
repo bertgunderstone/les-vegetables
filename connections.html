@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Number Connections</title>
+<style>
+  :root {
+    --paper: #fdf6ec;
+    --ink: #1a1a2e;
+    --pink: #f94c8d;
+    --teal: #2ec4b6;
+    --yellow: #ffd93d;
+    --green: #8ac926;
+    --blue: #3a86ff;
+    --purple: #9b5de5;
+    --orange: #ff8811;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: var(--paper);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="260" height="260"><g fill="none" stroke-width="3" opacity="0.22"><circle cx="42" cy="38" r="11" stroke="%23f94c8d"/><path d="M158 26 l13 22 h-26 z" stroke="%232ec4b6"/><path d="M28 176 q10 -15 20 0 t20 0" stroke="%239b5de5"/><path d="M196 152 h18 m-9 -9 v18" stroke="%23ff8811"/><circle cx="124" cy="112" r="5" fill="%23ffd93d" stroke="none"/><circle cx="222" cy="218" r="5" fill="%232ec4b6" stroke="none"/><path d="M70 230 l10 -16 l10 16" stroke="%23ffd93d"/></g></svg>');
+    color: var(--ink);
+    font-family: 'Trebuchet MS', 'Century Gothic', Futura, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  header { text-align: center; margin-bottom: 8px; }
+  .menu-link { display: inline-block; margin-bottom: 6px; font-weight: bold; color: var(--ink); text-decoration: none; border: 2px solid var(--ink); border-radius: 16px; padding: 2px 12px; background: #fff; box-shadow: 2px 2px 0 var(--pink); }
+  .menu-link:hover { background: var(--yellow); }
+  h1 {
+    font-size: 2.4rem;
+    letter-spacing: 0.03em;
+    display: inline-block;
+    transform: rotate(-2deg);
+    text-shadow: 4px 4px 0 var(--teal);
+  }
+  .tagline { font-weight: bold; font-size: 0.9rem; color: var(--purple); letter-spacing: 0.04em; }
+
+  .board { width: 100%; max-width: 480px; }
+  .solved { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+  .solved-group {
+    border: 3px solid var(--ink);
+    border-radius: 12px;
+    padding: 8px 12px;
+    text-align: center;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  .solved-group .cat { font-weight: bold; font-size: 0.95rem; }
+  .solved-group .nums { font-size: 1.2rem; font-weight: bold; letter-spacing: 1px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .tile {
+    aspect-ratio: 1 / 1;
+    border: 3px solid var(--ink);
+    border-radius: 12px;
+    background: #fff;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 1.7rem;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: transform 0.08s, box-shadow 0.08s, background 0.12s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tile:hover { background: #f3ecdd; }
+  .tile.selected {
+    background: var(--ink);
+    color: var(--paper);
+    transform: translate(3px, 3px);
+    box-shadow: none;
+  }
+  .tile.shake { animation: shake 0.4s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+
+  .mistakes { display: flex; align-items: center; gap: 8px; margin: 14px 0 6px; font-weight: bold; }
+  .dot { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid var(--ink); background: var(--pink); }
+  .dot.spent { background: #fff; }
+
+  .actions { display: flex; gap: 10px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+  .actions button {
+    font-family: inherit; font-weight: bold; font-size: 0.95rem;
+    padding: 9px 18px; background: #fff;
+    border: 3px solid var(--ink); border-radius: 22px;
+    cursor: pointer; box-shadow: 3px 3px 0 var(--orange);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .actions button:hover:not(:disabled) { background: var(--yellow); }
+  .actions button:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: none; }
+  .actions button:disabled { opacity: 0.4; cursor: default; }
+  #submitBtn { box-shadow: 3px 3px 0 var(--pink); }
+
+  .toast {
+    position: fixed; left: 50%; top: 14%;
+    transform: translateX(-50%) rotate(-2deg);
+    background: var(--ink); color: var(--paper);
+    border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--pink);
+    padding: 8px 22px; border-radius: 12px; font-weight: bold; font-size: 1.05rem;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 5;
+  }
+  .toast.show { opacity: 1; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(26,26,46,0.5); display: flex; align-items: center; justify-content: center; z-index: 10; }
+  .overlay.hidden { display: none; }
+  .card {
+    background: var(--paper); border: 3px solid var(--ink); border-radius: 16px;
+    box-shadow: 7px 7px 0 var(--yellow); padding: 28px 32px; max-width: 400px; text-align: center;
+  }
+  .card h2 { margin-bottom: 12px; transform: rotate(-1deg); text-shadow: 2px 2px 0 var(--teal); }
+  .card p { margin-bottom: 10px; line-height: 1.4; }
+  .share-grid { font-size: 1.5rem; line-height: 1.5; letter-spacing: 2px; margin: 10px 0; }
+  .card .actions { margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="menu-link">← menu</a>
+  <h1>Number Connections</h1>
+  <div class="tagline">FIND FOUR GROUPS OF FOUR</div>
+</header>
+
+<div class="board">
+  <div class="solved" id="solved"></div>
+  <div class="grid" id="grid"></div>
+  <div class="mistakes">Mistakes left: <span id="dots"></span></div>
+  <div class="actions">
+    <button id="shuffleBtn">Shuffle</button>
+    <button id="deselectBtn">Deselect all</button>
+    <button id="submitBtn" disabled>Submit</button>
+    <button id="newBtn">New puzzle</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay hidden" id="overlay"><div class="card" id="overlayCard"></div></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   Category library — each is a recognizable number property.
+   diff drives the colour tier (1 easiest -> 4 trickiest).
+   ============================================================ */
+function isPrime(n) {
+  if (n < 2) return false;
+  for (let i = 2; i * i <= n; i++) if (n % i === 0) return false;
+  return true;
+}
+function isPerfectSquare(n) { const r = Math.round(Math.sqrt(n)); return r * r === n; }
+function isCube(n) { const r = Math.round(Math.cbrt(n)); return r * r * r === n; }
+function isPow2(n) { return n >= 2 && (n & (n - 1)) === 0; }
+const FIBS = new Set([2, 3, 5, 8, 13, 21, 34, 55, 89]);
+function isFib(n) { return FIBS.has(n); }
+function isTriangular(n) { const t = Math.round((Math.sqrt(8 * n + 1) - 1) / 2); return t * (t + 1) / 2 === n; }
+
+const RANGE_MIN = 2, RANGE_MAX = 100;
+const CATEGORIES = [
+  { name: 'Multiples of 10',     diff: 1, test: n => n % 10 === 0 },
+  { name: 'Multiples of 5',      diff: 1, test: n => n % 5 === 0 },
+  { name: 'Repdigits',           diff: 1, test: n => n >= 11 && n <= 99 && n % 11 === 0 },
+  { name: 'Perfect squares',     diff: 2, test: isPerfectSquare },
+  { name: 'Multiples of 7',      diff: 2, test: n => n % 7 === 0 },
+  { name: 'Multiples of 9',      diff: 2, test: n => n % 9 === 0 },
+  { name: 'Prime numbers',       diff: 3, test: isPrime },
+  { name: 'Powers of 2',         diff: 3, test: isPow2 },
+  { name: 'Fibonacci numbers',   diff: 4, test: isFib },
+  { name: 'Triangular numbers',  diff: 4, test: isTriangular },
+  { name: 'Cubes',               diff: 4, test: isCube },
+];
+// Precompute each category's member pool within the range.
+CATEGORIES.forEach(c => {
+  c.pool = [];
+  for (let n = RANGE_MIN; n <= RANGE_MAX; n++) if (c.test(n)) c.pool.push(n);
+});
+
+/* ============================================================
+   Board generation with a uniqueness guarantee.
+   ============================================================ */
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// Count exact covers: assign each number to one of the categories it satisfies
+// so every category gets exactly 4. Stops counting at `limit`.
+function countCovers(numbers, cats, limit) {
+  const memb = numbers.map(n => cats.reduce((acc, c, ci) => (c.test(n) ? acc.concat(ci) : acc), []));
+  const cap = [4, 4, 4, 4];
+  let count = 0;
+  const order = numbers.map((_, i) => i).sort((a, b) => memb[a].length - memb[b].length);
+  function rec(k) {
+    if (count >= limit) return;
+    if (k === order.length) { count++; return; }
+    const i = order[k];
+    for (const ci of memb[i]) {
+      if (cap[ci] > 0) { cap[ci]--; rec(k + 1); cap[ci]++; if (count >= limit) return; }
+    }
+  }
+  rec(0);
+  return count;
+}
+
+// Try to fill 4 distinct numbers for each chosen category (16 distinct total),
+// biasing toward overlap numbers so the board has tempting traps.
+function tryAssign(cats) {
+  const used = new Set();
+  const groups = [];
+  // Most-constrained category (smallest pool) first.
+  const order = cats.map((c, i) => i).sort((a, b) => cats[a].pool.length - cats[b].pool.length);
+  const picked = new Array(cats.length);
+  function rec(k) {
+    if (k === order.length) return true;
+    const ci = order[k];
+    const avail = shuffled(cats[ci].pool.filter(n => !used.has(n)));
+    // Prefer numbers that also satisfy another chosen category (traps), but allow any.
+    avail.sort((a, b) => overlapDeg(b, cats) - overlapDeg(a, cats));
+    // light randomness so we don't always pick the same trap-heavy set
+    const cand = (Math.random() < 0.7) ? avail : shuffled(avail);
+    if (cand.length < 4) return false;
+    // try a few combinations
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const choose = shuffled(cand).slice(0, 4);
+      choose.forEach(n => used.add(n));
+      picked[ci] = choose;
+      if (rec(k + 1)) return true;
+      choose.forEach(n => used.delete(n));
+    }
+    return false;
+  }
+  if (!rec(0)) return null;
+  cats.forEach((c, i) => groups.push({ cat: c, nums: picked[i] }));
+  return groups;
+}
+function overlapDeg(n, cats) { return cats.reduce((a, c) => a + (c.test(n) ? 1 : 0), 0); }
+
+function generateBoard() {
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const cats = shuffled(CATEGORIES).slice(0, 4);
+    const groups = tryAssign(cats);
+    if (!groups) continue;
+    const numbers = groups.flatMap(g => g.nums);
+    if (new Set(numbers).size !== 16) continue;
+    if (countCovers(numbers, cats, 2) !== 1) continue;          // must be uniquely solvable
+    const traps = numbers.filter(n => overlapDeg(n, cats) >= 2).length;
+    if (traps < 2) continue;                                    // demand some misdirection
+    // sort groups easiest -> trickiest for the colour tiers
+    groups.sort((a, b) => a.cat.diff - b.cat.diff);
+    return groups;
+  }
+  return null;
+}
+
+/* ============================================================
+   Game state & UI
+   ============================================================ */
+const GROUP_COLORS = ['var(--yellow)', 'var(--green)', 'var(--blue)', 'var(--purple)'];
+const GROUP_EMOJI = ['🟨', '🟩', '🟦', '🟪'];
+const MAX_MISTAKES = 4;
+
+const solvedEl = document.getElementById('solved');
+const gridEl = document.getElementById('grid');
+const dotsEl = document.getElementById('dots');
+const toastEl = document.getElementById('toast');
+const overlayEl = document.getElementById('overlay');
+const overlayCardEl = document.getElementById('overlayCard');
+const submitBtn = document.getElementById('submitBtn');
+
+let groups = [];          // [{cat, nums}] sorted by difficulty (group index = colour)
+let groupOf = {};         // number -> group index
+let tiles = [];           // current display order of unsolved numbers
+let selected = [];        // selected numbers
+let solvedGroups = [];    // indices solved so far
+let mistakes = 0;
+let guesses = [];         // history: each guess = [groupIdx,...] for the 4 picked
+let gameOver = false;
+
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(() => toastEl.classList.remove('show'), 1400);
+}
+function showOverlay(html) { overlayCardEl.innerHTML = html; overlayEl.classList.remove('hidden'); }
+function hideOverlay() { overlayEl.classList.add('hidden'); }
+
+function renderDots() {
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < MAX_MISTAKES; i++) {
+    const d = document.createElement('span');
+    d.className = 'dot' + (i < mistakes ? ' spent' : '');
+    dotsEl.appendChild(d);
+  }
+}
+
+function renderSolved() {
+  solvedEl.innerHTML = '';
+  solvedGroups.forEach(gi => {
+    const g = groups[gi];
+    const div = document.createElement('div');
+    div.className = 'solved-group';
+    div.style.background = GROUP_COLORS[gi];
+    div.innerHTML = `<div class="cat">${g.cat.name}</div><div class="nums">${g.nums.join('   ')}</div>`;
+    solvedEl.appendChild(div);
+  });
+}
+
+function renderGrid() {
+  gridEl.innerHTML = '';
+  tiles.forEach(n => {
+    const b = document.createElement('button');
+    b.className = 'tile' + (selected.includes(n) ? ' selected' : '');
+    b.textContent = n;
+    b.addEventListener('click', () => toggle(n, b));
+    gridEl.appendChild(b);
+  });
+}
+
+function toggle(n) {
+  if (gameOver) return;
+  const i = selected.indexOf(n);
+  if (i >= 0) selected.splice(i, 1);
+  else if (selected.length < 4) selected.push(n);
+  submitBtn.disabled = selected.length !== 4;
+  renderGrid();
+}
+
+function submitGuess() {
+  if (selected.length !== 4 || gameOver) return;
+  const gis = selected.map(n => groupOf[n]);
+  guesses.push(gis.slice());
+  // all in the same group?
+  if (gis.every(g => g === gis[0])) {
+    const gi = gis[0];
+    solvedGroups.push(gi);
+    tiles = tiles.filter(n => !selected.includes(n));
+    selected = [];
+    submitBtn.disabled = true;
+    // keep solved groups displayed in colour-tier order
+    solvedGroups.sort((a, b) => a - b);
+    renderSolved(); renderGrid();
+    if (solvedGroups.length === 4) endGame(true);
+    return;
+  }
+  // wrong guess
+  mistakes++;
+  renderDots();
+  const counts = {};
+  gis.forEach(g => counts[g] = (counts[g] || 0) + 1);
+  const oneAway = Object.values(counts).some(c => c === 3);
+  document.querySelectorAll('.tile.selected').forEach(t => {
+    t.classList.add('shake');
+    setTimeout(() => t.classList.remove('shake'), 400);
+  });
+  if (oneAway) showToast('One away…');
+  if (mistakes >= MAX_MISTAKES) endGame(false);
+}
+
+function endGame(won) {
+  gameOver = true;
+  // reveal any groups not yet solved
+  const remaining = [0, 1, 2, 3].filter(gi => !solvedGroups.includes(gi));
+  solvedGroups = solvedGroups.concat(remaining);
+  solvedGroups.sort((a, b) => a - b);
+  tiles = [];
+  renderSolved(); renderGrid();
+  const shareGrid = guesses.map(g => g.map(gi => GROUP_EMOJI[gi]).join('')).join('\n');
+  const shareText = `Number Connections\n${won ? `Solved with ${mistakes} mistake${mistakes === 1 ? '' : 's'}` : 'Out of guesses'}\n${shareGrid}`;
+  showOverlay(`
+    <h2>${won ? 'Nice connections!' : 'Out of guesses'}</h2>
+    <div class="share-grid">${guesses.map(g => g.map(gi => GROUP_EMOJI[gi]).join('')).join('<br>')}</div>
+    <p>${won ? `You found all four groups with <strong>${mistakes}</strong> mistake${mistakes === 1 ? '' : 's'}.` : 'The groups are revealed above.'}</p>
+    <div class="actions">
+      <button id="shareBtn">Copy results</button>
+      <button id="againBtn">New puzzle</button>
+    </div>`);
+  document.getElementById('shareBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(shareText).then(() => { document.getElementById('shareBtn').textContent = 'Copied!'; });
+  });
+  document.getElementById('againBtn').addEventListener('click', () => { hideOverlay(); newGame(); });
+}
+
+document.getElementById('shuffleBtn').addEventListener('click', () => { if (!gameOver) { tiles = shuffled(tiles); renderGrid(); } });
+document.getElementById('deselectBtn').addEventListener('click', () => { selected = []; submitBtn.disabled = true; renderGrid(); });
+submitBtn.addEventListener('click', submitGuess);
+document.getElementById('newBtn').addEventListener('click', newGame);
+
+function newGame() {
+  showOverlay('<h2>Number Connections</h2><p>Shuffling up a puzzle…</p>');
+  // let the overlay paint before the (fast) generation
+  setTimeout(() => {
+    const g = generateBoard();
+    if (!g) { showOverlay('<h2>Hmm</h2><p>Could not build a puzzle — try again.</p>'); return; }
+    groups = g;
+    groupOf = {};
+    groups.forEach((grp, gi) => grp.nums.forEach(n => groupOf[n] = gi));
+    tiles = shuffled(groups.flatMap(grp => grp.nums));
+    selected = [];
+    solvedGroups = [];
+    mistakes = 0;
+    guesses = [];
+    gameOver = false;
+    submitBtn.disabled = true;
+    renderSolved(); renderGrid(); renderDots();
+    hideOverlay();
+  }, 30);
+}
+
+newGame();
+</script>
+</body>
+</html>
