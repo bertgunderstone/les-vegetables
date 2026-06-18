@@ -477,9 +477,9 @@ function collectAlternates(memo, n, target, primaryExpr, max) {
 }
 
 /* ---------- puzzle generation ---------- */
-const MIN_ROUND_SIZE = 4, MAX_ROUND_SIZE = 8, BONUS_SIZE = 9;
+const MIN_ROUND_SIZE = 5, MAX_ROUND_SIZE = 8, BONUS_SIZE = 9;
 // The target climbs as the wheel grows: each round size has its own band.
-const TARGET_BANDS = { 4: [13, 99], 5: [101, 200], 6: [201, 350], 7: [351, 500], 8: [501, 700], 9: [701, 999] };
+const TARGET_BANDS = { 5: [101, 200], 6: [201, 350], 7: [351, 500], 8: [501, 700], 9: [701, 999] };
 
 function shuffled(arr) {
   const a = arr.slice();
@@ -503,17 +503,17 @@ const MAX_ALTERNATES = 3;
 
 async function generateGame(onProgress) {
   for (let attempt = 0; attempt < 60; attempt++) {
-    // First four: 1 is allowed here, and only here.
-    const firstFour = shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).slice(0, 4);
-    const memo4 = solveDP(firstFour);
-    const first = pickTarget(memo4[(1 << 4) - 1], 4);
+    // Opening set: 1 is allowed here, and only here.
+    const firstSet = shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).slice(0, MIN_ROUND_SIZE);
+    const memo0 = solveDP(firstSet);
+    const first = pickTarget(memo0[(1 << MIN_ROUND_SIZE) - 1], MIN_ROUND_SIZE);
     if (!first) continue;
-    first.alternates = collectAlternates(memo4, 4, first.target, first.solution.expr, MAX_ALTERNATES);
+    first.alternates = collectAlternates(memo0, MIN_ROUND_SIZE, first.target, first.solution.expr, MAX_ALTERNATES);
 
-    // One big number joins the wheel in round 4 or later (wheel size 7-9).
+    // One big number joins the wheel later in the game (wheel size 7-9).
     const bigSize = 7 + Math.floor(Math.random() * 3);
 
-    const numbers = firstFour.slice();
+    const numbers = firstSet.slice();
     const rounds = [first]; // per round: {target, solution, alternates}
     let ok = true;
     for (let size = MIN_ROUND_SIZE + 1; size <= BONUS_SIZE; size++) {
@@ -995,7 +995,7 @@ async function newGame() {
   }
   hideOverlay();
   roundSize = MIN_ROUND_SIZE;
-  tileOrder = [0, 1, 2, 3];
+  tileOrder = Array.from({ length: MIN_ROUND_SIZE }, (_, i) => i);
   startTime = Date.now();
   timerInterval = setInterval(tickTimer, 250);
   renderTimer();
