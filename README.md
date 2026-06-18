@@ -4,8 +4,8 @@ Two daily-style number games sharing one Memphis-Group look. `index.html`
 is a landing page that links to each:
 
 - **Bingpot!** (`bingpot.html`) — a target-building game.
-- **Number Connections** (`connections.html`) — a grouping/insight game in
-  the spirit of NYT Connections, but with numbers.
+- **Gropo** (`gropo.html`) — split a board of numbers across four targets,
+  using every number to reach all four.
 
 ---
 
@@ -70,36 +70,38 @@ crossed with Countdown's numbers round and the classroom game Krypto.
 
 ---
 
-## Number Connections
+## Gropo
 
-NYT Connections, but with numbers. Sixteen numbers hide four groups of
-four, each group sharing a number property (multiples of 7, perfect
-squares, primes, Fibonacci, …). Select four and submit; four wrong
-guesses ends the game.
+Four target numbers, a board of sixteen numbers, and one rule: use
+**every** number to reach all four targets. You decide the partition —
+which numbers serve which target — and build each target's expression
+with `+ − × ÷` and parentheses. It's the construction feel of Bingpot
+plus a grouping decision on top.
 
 ### How to play
 
-- Tap four numbers you think share a hidden property, then **Submit**.
-- A correct group locks in with its category revealed and a colour tier
-  (yellow easiest → green → blue → purple trickiest).
-- Four mistakes and the game ends, revealing every group. "One away…"
-  warns when three of your four belong together.
-- Shuffle rearranges the grid; finishing gives a spoiler-free coloured
-  share grid (one row of squares per guess), just like Connections.
+- Tap a target card to make it active, then tap pool numbers to drop them
+  into that target's expression; use the keypad for operators and parens.
+- Each card shows its running value live, with a ✓ when it equals its
+  target. Tap a placed number (or use ⌫ / Clear target) to send it back
+  to the pool.
+- Win when **every** number is placed and all four cards hit their
+  targets. Groups can be any size from 2 to 6 — figuring out the split is
+  the puzzle.
+- No fractions (Countdown rule): every division must come out even.
+- Hint nudges an unplaced number toward the target it was built for;
+  finishing gives a spoiler-free share showing your group sizes.
 
 ### Design rules
 
-- Numbers run 2–100. Categories are recognizable in hindsight — the
-  "aha" depends on it (multiples of K, squares, cubes, powers of 2,
-  Fibonacci, triangular numbers, primes, repdigits).
-- The magic is **misdirection**: a number can satisfy several properties
-  (64 is a square, a cube, *and* a power of 2; 8 is a cube, a power of 2,
-  *and* Fibonacci), so it looks like it belongs to multiple groups.
-- Generation guarantees a **unique** solution: it picks four categories,
-  fills a 16-number board biased toward overlap traps, then runs an
-  exact-cover check and rejects any board with more than one valid way to
-  partition it. Boards with too few traps are also rejected, so every
-  puzzle has real bait but exactly one answer.
+- The board is 16 numbers (1–12, duplicates allowed); four distinct
+  targets land in 20–150.
+- Puzzles are generated **by construction**: four groups of 2–6 small
+  numbers are drawn, each group's target is a value reachable using all
+  of that group's numbers (verified with a subset-DP solver), then the
+  groups are pooled and shuffled. So at least one full solution always
+  exists — any valid partition the player finds counts, not just the
+  intended one.
 
 ---
 
