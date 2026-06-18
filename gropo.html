@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gropo</title>
+<style>
+  :root {
+    --paper: #fdf6ec;
+    --ink: #1a1a2e;
+    --pink: #f94c8d;
+    --teal: #2ec4b6;
+    --yellow: #ffd93d;
+    --purple: #9b5de5;
+    --orange: #ff8811;
+    --used: #e5dfd2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: var(--paper);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="260" height="260"><g fill="none" stroke-width="3" opacity="0.22"><circle cx="42" cy="38" r="11" stroke="%23f94c8d"/><path d="M158 26 l13 22 h-26 z" stroke="%232ec4b6"/><path d="M28 176 q10 -15 20 0 t20 0" stroke="%239b5de5"/><path d="M196 152 h18 m-9 -9 v18" stroke="%23ff8811"/><circle cx="124" cy="112" r="5" fill="%23ffd93d" stroke="none"/><circle cx="222" cy="218" r="5" fill="%232ec4b6" stroke="none"/><path d="M70 230 l10 -16 l10 16" stroke="%23ffd93d"/></g></svg>');
+    color: var(--ink);
+    font-family: 'Trebuchet MS', 'Century Gothic', Futura, Verdana, sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 14px;
+  }
+  header { text-align: center; margin-bottom: 8px; }
+  .menu-link { display: inline-block; margin-bottom: 6px; font-weight: bold; color: var(--ink); text-decoration: none; border: 2px solid var(--ink); border-radius: 16px; padding: 2px 12px; background: #fff; box-shadow: 2px 2px 0 var(--pink); }
+  .menu-link:hover { background: var(--yellow); }
+  h1 { font-size: 2.4rem; letter-spacing: 0.04em; display: inline-block; transform: rotate(-2deg); text-shadow: 4px 4px 0 var(--pink); }
+  .tagline { font-weight: bold; font-size: 0.85rem; color: var(--purple); letter-spacing: 0.03em; }
+
+  .wrap { width: 100%; max-width: 520px; }
+  .counter { text-align: center; font-weight: bold; margin: 8px 0; }
+
+  .targets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tcard {
+    border: 3px solid var(--ink); border-radius: 14px; background: #fff;
+    padding: 8px 10px; cursor: pointer; min-height: 92px;
+    display: flex; flex-direction: column; gap: 4px;
+    transition: transform 0.08s;
+  }
+  .tcard[data-c="0"] { box-shadow: 4px 4px 0 var(--yellow); }
+  .tcard[data-c="1"] { box-shadow: 4px 4px 0 var(--teal); }
+  .tcard[data-c="2"] { box-shadow: 4px 4px 0 var(--pink); }
+  .tcard[data-c="3"] { box-shadow: 4px 4px 0 var(--purple); }
+  .tcard.active { transform: translate(-1px,-1px); outline: 3px dashed var(--ink); outline-offset: 2px; }
+  .tcard.done { background: #eafbe7; }
+  .ttop { display: flex; justify-content: space-between; align-items: baseline; }
+  .tlabel { font-size: 0.62rem; font-weight: bold; letter-spacing: 1.5px; color: var(--purple); }
+  .tval { font-size: 1.5rem; font-weight: bold; }
+  .texpr { flex: 1; font-size: 1.05rem; font-weight: bold; display: flex; flex-wrap: wrap; gap: 2px; align-items: center; min-height: 1.2em; }
+  .texpr .ph { color: #c4bcae; font-weight: normal; font-size: 0.8rem; font-style: italic; }
+  .texpr .tok { padding: 0 2px; border-radius: 4px; }
+  .texpr .tok.num { cursor: pointer; }
+  .texpr .tok.num:hover { background: var(--used); }
+  .tres { font-size: 0.9rem; font-weight: bold; color: var(--teal); }
+  .tres.bad { color: var(--pink); }
+  .tres.ok::after { content: ' ✓'; }
+
+  .pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0 6px; min-height: 50px; }
+  .ptile {
+    width: 50px; height: 50px; border-radius: 12px; background: var(--yellow);
+    border: 3px solid var(--ink); font-family: inherit; font-weight: bold; font-size: 1.4rem;
+    cursor: pointer; box-shadow: 3px 3px 0 var(--ink);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .ptile:hover { background: #ffe98a; }
+  .ptile:active { transform: translate(3px,3px); box-shadow: none; }
+
+  .keypad { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+  .keypad button { font-family: inherit; font-weight: bold; font-size: 1.3rem; width: 52px; height: 46px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; cursor: pointer; box-shadow: 3px 3px 0 var(--purple); }
+  .keypad button:hover { background: var(--yellow); }
+  .keypad button:active { transform: translate(3px,3px); box-shadow: none; }
+  .actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+  .actions button { font-family: inherit; font-weight: bold; font-size: 0.95rem; padding: 9px 16px; background: #fff; border: 3px solid var(--ink); border-radius: 22px; cursor: pointer; box-shadow: 3px 3px 0 var(--orange); }
+  .actions button:hover { background: var(--yellow); }
+  .actions button:active { transform: translate(3px,3px); box-shadow: none; }
+
+  .toast { position: fixed; left: 50%; top: 12%; transform: translateX(-50%) rotate(-2deg); background: var(--ink); color: var(--paper); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--pink); padding: 8px 22px; border-radius: 12px; font-weight: bold; opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 5; }
+  .toast.show { opacity: 1; }
+  .overlay { position: fixed; inset: 0; background: rgba(26,26,46,0.5); display: flex; align-items: center; justify-content: center; z-index: 10; }
+  .overlay.hidden { display: none; }
+  .card { background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 7px 7px 0 var(--yellow); padding: 26px 30px; max-width: 400px; text-align: center; }
+  .card h2 { margin-bottom: 12px; transform: rotate(-1deg); text-shadow: 2px 2px 0 var(--teal); }
+  .share-grid { font-size: 1.4rem; letter-spacing: 2px; margin: 10px 0; word-break: break-word; }
+  .card .actions { margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="menu-link">← menu</a>
+  <h1>Gropo</h1>
+  <div class="tagline">SPLIT EVERY NUMBER ACROSS THE FOUR TARGETS</div>
+</header>
+
+<div class="wrap">
+  <div class="counter"><span id="placed">0</span> / <span id="total">16</span> numbers placed</div>
+  <div class="targets" id="targets"></div>
+  <div class="pool" id="pool"></div>
+  <div class="keypad">
+    <button data-op="(">(</button>
+    <button data-op=")">)</button>
+    <button data-op="+">+</button>
+    <button data-op="−">−</button>
+    <button data-op="×">×</button>
+    <button data-op="÷">÷</button>
+    <button id="backspace">⌫</button>
+  </div>
+  <div class="actions">
+    <button id="clearBtn">Clear target</button>
+    <button id="shuffleBtn">Shuffle</button>
+    <button id="hintBtn">Hint</button>
+    <button id="newBtn">New puzzle</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="overlay hidden" id="overlay"><div class="card" id="overlayCard"></div></div>
+
+<script>
+'use strict';
+
+/* ---------- integer expression evaluation (Countdown rule: no fractions) ---------- */
+function evalTokens(tokens) {
+  let i = 0;
+  function expr() {
+    let v = term(); if (v === undefined) return undefined;
+    while (i < tokens.length && tokens[i].t === 'op' && (tokens[i].v === '+' || tokens[i].v === '−')) {
+      const op = tokens[i++].v; const r = term();
+      if (r === undefined) return undefined;
+      if (v === null || r === null) { v = null; continue; }
+      v = op === '+' ? v + r : v - r;
+    }
+    return v;
+  }
+  function term() {
+    let v = factor(); if (v === undefined) return undefined;
+    while (i < tokens.length && tokens[i].t === 'op' && (tokens[i].v === '×' || tokens[i].v === '÷')) {
+      const op = tokens[i++].v; const r = factor();
+      if (r === undefined) return undefined;
+      if (v === null || r === null) { v = null; continue; }
+      if (op === '×') v = v * r; else v = (r === 0 || v % r !== 0) ? null : v / r;
+    }
+    return v;
+  }
+  function factor() {
+    if (i >= tokens.length) return undefined;
+    const tk = tokens[i];
+    if (tk.t === 'num') { i++; return tk.v; }
+    if (tk.t === 'paren' && tk.v === '(') {
+      i++; const v = expr();
+      if (v === undefined) return undefined;
+      if (i >= tokens.length || tokens[i].v !== ')') return undefined;
+      i++; return v;
+    }
+    return undefined;
+  }
+  const v = expr();
+  if (v === undefined || i < tokens.length) return undefined;
+  return v;
+}
+
+/* ---------- puzzle generation ---------- */
+const VALUE_CAP = 1000;
+const TARGET_MIN = 20, TARGET_MAX = 150;
+const BOARD_SIZE = 16;
+const NUM_MIN = 1, NUM_MAX = 12;
+const GROUP_MIN = 2, GROUP_MAX = 6;
+
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function randInt(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+
+// All integer values (0..CAP) reachable using EVERY number in `nums`.
+function reachableValues(nums) {
+  const n = nums.length;
+  const memo = new Array(1 << n);
+  const push = (s, v) => { if (v >= 0 && v <= VALUE_CAP && Number.isInteger(v)) s.add(v); };
+  for (let i = 0; i < n; i++) memo[1 << i] = new Set([nums[i]]);
+  for (let mask = 1; mask < (1 << n); mask++) {
+    if (memo[mask]) continue;
+    const s = new Set();
+    for (let a = (mask - 1) & mask; a > 0; a = (a - 1) & mask) {
+      const b = mask ^ a; if (a < b) continue;
+      for (const x of memo[a]) for (const y of memo[b]) {
+        push(s, x + y); push(s, x * y);
+        if (x >= y) push(s, x - y); else push(s, y - x);
+        if (y !== 0 && x % y === 0) push(s, x / y);
+        if (x !== 0 && y % x === 0) push(s, y / x);
+      }
+    }
+    memo[mask] = s;
+  }
+  return memo[(1 << n) - 1];
+}
+
+function randSizes() {
+  while (true) {
+    const a = randInt(GROUP_MIN, GROUP_MAX), b = randInt(GROUP_MIN, GROUP_MAX), c = randInt(GROUP_MIN, GROUP_MAX);
+    const d = BOARD_SIZE - a - b - c;
+    if (d >= GROUP_MIN && d <= GROUP_MAX) return [a, b, c, d];
+  }
+}
+
+function generateGropo() {
+  for (let attempt = 0; attempt < 300; attempt++) {
+    const sizes = randSizes();
+    const groups = [];
+    const usedTargets = new Set();
+    let ok = true;
+    for (const size of sizes) {
+      let made = null;
+      for (let t = 0; t < 200; t++) {
+        const nums = Array.from({ length: size }, () => randInt(NUM_MIN, NUM_MAX));
+        const reach = reachableValues(nums);
+        const cands = [...reach].filter(v => v >= TARGET_MIN && v <= TARGET_MAX && !usedTargets.has(v));
+        if (cands.length) { made = { nums, target: cands[Math.floor(Math.random() * cands.length)] }; break; }
+      }
+      if (!made) { ok = false; break; }
+      usedTargets.add(made.target);
+      groups.push(made);
+    }
+    if (ok) { groups.sort((a, b) => a.target - b.target); return groups; }
+  }
+  return null;
+}
+
+/* ---------- game state & UI ---------- */
+const targetsEl = document.getElementById('targets');
+const poolEl = document.getElementById('pool');
+const placedEl = document.getElementById('placed');
+const totalEl = document.getElementById('total');
+const toastEl = document.getElementById('toast');
+const overlayEl = document.getElementById('overlay');
+const overlayCardEl = document.getElementById('overlayCard');
+
+const GROUP_EMOJI = ['🟨', '🟩', '🟥', '🟪'];
+
+let pool = [];     // [{id, v, target, placed, card}] — index-aligned: pool[i].id === i
+let order = [];     // display order of tile ids
+let cards = [];     // [{target, tokens: [{t,v,tileId?}]}]
+let active = 0;
+let hintsUsed = 0;
+let solved = false;
+
+function showToast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(() => toastEl.classList.remove('show'), 1500); }
+function showOverlay(html) { overlayCardEl.innerHTML = html; overlayEl.classList.remove('hidden'); }
+function hideOverlay() { overlayEl.classList.add('hidden'); }
+
+function numCount(card) { return card.tokens.filter(t => t.t === 'num').length; }
+function placedCount() { return pool.filter(p => p.placed).length; }
+
+function renderCounter() { placedEl.textContent = placedCount(); totalEl.textContent = pool.length; }
+
+function renderTargets() {
+  targetsEl.innerHTML = '';
+  cards.forEach((card, ci) => {
+    const v = evalTokens(card.tokens);
+    const div = document.createElement('div');
+    div.className = 'tcard' + (ci === active ? ' active' : '') + (v === card.target ? ' done' : '');
+    div.dataset.c = ci;
+    div.addEventListener('click', () => { active = ci; renderTargets(); });
+
+    const top = document.createElement('div');
+    top.className = 'ttop';
+    top.innerHTML = `<span class="tlabel">TARGET</span><span class="tval">${card.target}</span>`;
+    div.appendChild(top);
+
+    const expr = document.createElement('div');
+    expr.className = 'texpr';
+    if (card.tokens.length === 0) {
+      expr.innerHTML = '<span class="ph">tap numbers…</span>';
+    } else {
+      card.tokens.forEach((tk, ti) => {
+        const sp = document.createElement('span');
+        sp.className = 'tok ' + (tk.t === 'num' ? 'num' : 'op');
+        sp.textContent = tk.v;
+        if (tk.t === 'num') {
+          sp.title = 'remove';
+          sp.addEventListener('click', (e) => { e.stopPropagation(); active = ci; removeToken(ci, ti); });
+        }
+        expr.appendChild(sp);
+      });
+    }
+    div.appendChild(expr);
+
+    const res = document.createElement('div');
+    res.className = 'tres';
+    if (card.tokens.length === 0) { res.textContent = ''; }
+    else if (v === undefined) { res.textContent = '= …'; }
+    else if (v === null) { res.textContent = '✗ no fractions'; res.classList.add('bad'); }
+    else { res.textContent = `= ${v}`; if (v === card.target) res.classList.add('ok'); else res.classList.add('bad'); }
+    div.appendChild(res);
+
+    targetsEl.appendChild(div);
+  });
+}
+
+function renderPool() {
+  poolEl.innerHTML = '';
+  order.forEach(id => {
+    const p = pool[id];
+    if (p.placed) return;
+    const b = document.createElement('button');
+    b.className = 'ptile';
+    b.textContent = p.v;
+    b.addEventListener('click', () => placeNumber(id));
+    poolEl.appendChild(b);
+  });
+}
+
+function renderAll() { renderTargets(); renderPool(); renderCounter(); }
+
+function placeNumber(id) {
+  if (solved) return;
+  const p = pool[id];
+  if (p.placed) return;
+  p.placed = true; p.card = active;
+  cards[active].tokens.push({ t: 'num', v: p.v, tileId: id });
+  renderAll();
+  checkWin();
+}
+function removeToken(ci, ti) {
+  if (solved) return;
+  const tk = cards[ci].tokens[ti];
+  if (tk.t === 'num') { pool[tk.tileId].placed = false; pool[tk.tileId].card = null; }
+  cards[ci].tokens.splice(ti, 1);
+  renderAll();
+}
+function pushOp(v) {
+  if (solved) return;
+  cards[active].tokens.push(v === '(' || v === ')' ? { t: 'paren', v } : { t: 'op', v });
+  renderTargets();
+}
+function clearTarget() {
+  if (solved) return;
+  cards[active].tokens.forEach(tk => { if (tk.t === 'num') { pool[tk.tileId].placed = false; pool[tk.tileId].card = null; } });
+  cards[active].tokens = [];
+  renderAll();
+}
+
+function checkWin() {
+  if (placedCount() !== pool.length) return;
+  const allOk = cards.every(c => evalTokens(c.tokens) === c.target);
+  if (!allOk) return;
+  solved = true;
+  const sizes = cards.map(c => numCount(c));
+  const shareRow = cards.map((c, ci) => GROUP_EMOJI[ci].repeat(numCount(c))).join(' ');
+  const shareText = `Gropo\n${shareRow}\n${hintsUsed} hint${hintsUsed === 1 ? '' : 's'}`;
+  showOverlay(`
+    <h2>Gropo!</h2>
+    <p>You split all ${pool.length} numbers across the four targets.</p>
+    <div class="share-grid">${shareRow}</div>
+    <p>Hints used: <strong>${hintsUsed}</strong></p>
+    <div class="actions">
+      <button id="shareBtn">Copy results</button>
+      <button id="againBtn">New puzzle</button>
+    </div>`);
+  document.getElementById('shareBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(shareText).then(() => { document.getElementById('shareBtn').textContent = 'Copied!'; });
+  });
+  document.getElementById('againBtn').addEventListener('click', () => { hideOverlay(); newGame(); });
+}
+
+document.querySelectorAll('.keypad button[data-op]').forEach(b => b.addEventListener('click', () => pushOp(b.dataset.op)));
+document.getElementById('backspace').addEventListener('click', () => {
+  if (solved) return;
+  const toks = cards[active].tokens;
+  if (toks.length === 0) return;
+  const tk = toks[toks.length - 1];
+  if (tk.t === 'num') { pool[tk.tileId].placed = false; pool[tk.tileId].card = null; }
+  toks.pop();
+  renderAll();
+});
+document.getElementById('clearBtn').addEventListener('click', clearTarget);
+document.getElementById('shuffleBtn').addEventListener('click', () => { order = shuffled(order); renderPool(); });
+document.getElementById('hintBtn').addEventListener('click', giveHint);
+document.getElementById('newBtn').addEventListener('click', newGame);
+
+function giveHint() {
+  if (solved) return;
+  const unplaced = pool.filter(p => !p.placed);
+  if (unplaced.length === 0) { showToast('All numbers are placed!'); return; }
+  const p = unplaced[Math.floor(Math.random() * unplaced.length)];
+  hintsUsed++;
+  // find the card whose target matches this number's intended group target
+  const ci = cards.findIndex(c => c.target === p.target);
+  active = ci >= 0 ? ci : active;
+  renderTargets();
+  showToast(`Try ${p.v} on the ${cards[ci].target} target`);
+}
+
+function newGame() {
+  showOverlay('<h2>Gropo</h2><p>Shuffling up a puzzle…</p>');
+  setTimeout(() => {
+    const groups = generateGropo();
+    if (!groups) { showOverlay('<h2>Hmm</h2><p>Could not build a puzzle — try again.</p>'); return; }
+    cards = groups.map(g => ({ target: g.target, tokens: [] }));
+    // build the pool: every number tagged with the target of the group it came from
+    pool = [];
+    groups.forEach(g => g.nums.forEach(v => pool.push({ id: 0, v, target: g.target, placed: false, card: null })));
+    pool.forEach((p, i) => p.id = i);          // index-aligned ids
+    order = shuffled(pool.map(p => p.id));      // randomized display order
+    active = 0;
+    hintsUsed = 0;
+    solved = false;
+    renderAll();
+    hideOverlay();
+  }, 30);
+}
+
+newGame();
+</script>
+</body>
+</html>
