@@ -80,28 +80,32 @@ plus a grouping decision on top.
 
 ### How to play
 
-- Tap a target card to make it active, then tap pool numbers to drop them
-  into that target's expression; use the keypad for operators and parens.
-- Each card shows its running value live, with a ✓ when it equals its
-  target. Tap a placed number (or use ⌫ / Clear target) to send it back
-  to the pool.
-- Win when **every** number is placed and all four cards hit their
-  targets. Groups can be any size from 2 to 6 — figuring out the split is
-  the puzzle.
-- No fractions (Countdown rule): every division must come out even.
+- Each target is its own **row**. Click a row to make it active; a caret
+  appears where your next input lands. Click anywhere in the row to move
+  the caret (so you can drop an operator earlier in the equation), or use
+  ← → ; ↑ ↓ / Enter move between rows.
+- The operators live on their own row (`( ) + − × ÷` and ⌫). Clicking a
+  stockpile number moves it into the active row at the caret. You can also
+  type everything on a physical keyboard (digits, `+ - * / ( )`,
+  Backspace) — multi-digit numbers buffer briefly so 1 can become 12.
+- Each row shows a live value, with ✓ when it equals its target. Backspace
+  or **Clear row** sends numbers back to the stockpile.
+- Win when **every** number is placed and all four rows hit their targets.
+  Groups can be any size from 2 to 6 — figuring out the split is the
+  puzzle. No fractions (Countdown rule): every division must come out even.
 - Hint nudges an unplaced number toward the target it was built for;
   finishing gives a spoiler-free share showing your group sizes.
 
 ### Design rules
 
-- The board is 16 numbers (1–12, duplicates allowed); four distinct
-  targets land in 20–150.
-- Puzzles are generated **by construction**: four groups of 2–6 small
-  numbers are drawn, each group's target is a value reachable using all
-  of that group's numbers (verified with a subset-DP solver), then the
-  groups are pooled and shuffled. So at least one full solution always
-  exists — any valid partition the player finds counts, not just the
-  intended one.
+- The board is 16 **distinct** numbers drawn from 1–50 (no repeats); four
+  distinct targets land in 20–200.
+- Puzzles are generated **by construction**: four groups of 2–6 numbers
+  are drawn (distinct across the whole board), each group's target is a
+  value reachable using all of that group's numbers (verified with a
+  subset-DP solver), then the groups are pooled and shuffled. So at least
+  one full solution always exists — any valid partition the player finds
+  counts, not just the intended one.
 
 ---
 

@@ -13,6 +13,7 @@
     --yellow: #ffd93d;
     --purple: #9b5de5;
     --orange: #ff8811;
+    --good: #2f855a;
     --used: #e5dfd2;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,50 +28,59 @@
   .menu-link { display: inline-block; margin-bottom: 6px; font-weight: bold; color: var(--ink); text-decoration: none; border: 2px solid var(--ink); border-radius: 16px; padding: 2px 12px; background: #fff; box-shadow: 2px 2px 0 var(--pink); }
   .menu-link:hover { background: var(--yellow); }
   h1 { font-size: 2.4rem; letter-spacing: 0.04em; display: inline-block; transform: rotate(-2deg); text-shadow: 4px 4px 0 var(--pink); }
-  .tagline { font-weight: bold; font-size: 0.85rem; color: var(--purple); letter-spacing: 0.03em; }
+  .tagline { font-weight: bold; font-size: 0.82rem; color: var(--purple); letter-spacing: 0.03em; }
 
-  .wrap { width: 100%; max-width: 520px; }
+  .wrap { width: 100%; max-width: 560px; }
   .counter { text-align: center; font-weight: bold; margin: 8px 0; }
 
-  .targets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .tcard {
+  .rows { display: flex; flex-direction: column; gap: 10px; }
+  .trow {
+    display: flex; align-items: stretch; gap: 10px;
     border: 3px solid var(--ink); border-radius: 14px; background: #fff;
-    padding: 8px 10px; cursor: pointer; min-height: 92px;
-    display: flex; flex-direction: column; gap: 4px;
-    transition: transform 0.08s;
+    padding: 8px; cursor: pointer; min-height: 64px;
+    transition: transform 0.06s;
   }
-  .tcard[data-c="0"] { box-shadow: 4px 4px 0 var(--yellow); }
-  .tcard[data-c="1"] { box-shadow: 4px 4px 0 var(--teal); }
-  .tcard[data-c="2"] { box-shadow: 4px 4px 0 var(--pink); }
-  .tcard[data-c="3"] { box-shadow: 4px 4px 0 var(--purple); }
-  .tcard.active { transform: translate(-1px,-1px); outline: 3px dashed var(--ink); outline-offset: 2px; }
-  .tcard.done { background: #eafbe7; }
-  .ttop { display: flex; justify-content: space-between; align-items: baseline; }
-  .tlabel { font-size: 0.62rem; font-weight: bold; letter-spacing: 1.5px; color: var(--purple); }
-  .tval { font-size: 1.5rem; font-weight: bold; }
-  .texpr { flex: 1; font-size: 1.05rem; font-weight: bold; display: flex; flex-wrap: wrap; gap: 2px; align-items: center; min-height: 1.2em; }
-  .texpr .ph { color: #c4bcae; font-weight: normal; font-size: 0.8rem; font-style: italic; }
-  .texpr .tok { padding: 0 2px; border-radius: 4px; }
-  .texpr .tok.num { cursor: pointer; }
-  .texpr .tok.num:hover { background: var(--used); }
-  .tres { font-size: 0.9rem; font-weight: bold; color: var(--teal); }
-  .tres.bad { color: var(--pink); }
-  .tres.ok::after { content: ' ✓'; }
+  .trow[data-c="0"] { box-shadow: 4px 4px 0 var(--yellow); }
+  .trow[data-c="1"] { box-shadow: 4px 4px 0 var(--teal); }
+  .trow[data-c="2"] { box-shadow: 4px 4px 0 var(--pink); }
+  .trow[data-c="3"] { box-shadow: 4px 4px 0 var(--purple); }
+  .trow.active { outline: 3px dashed var(--ink); outline-offset: 2px; transform: translate(-1px,-1px); }
+  .trow.done { background: #eafbe7; }
+  .tbadge {
+    flex: 0 0 auto; min-width: 64px; padding: 0 12px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border-right: 2px dashed var(--ink);
+  }
+  .tbadge .lbl { font-size: 0.58rem; font-weight: bold; letter-spacing: 1.5px; color: var(--purple); }
+  .tbadge .val { font-size: 1.7rem; font-weight: bold; line-height: 1; }
+  .texpr {
+    flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 1px;
+    font-size: 1.3rem; font-weight: bold; padding: 2px 6px; min-width: 0;
+  }
+  .texpr .ph { color: #c4bcae; font-weight: normal; font-size: 0.85rem; font-style: italic; }
+  .texpr .tok { padding: 0 3px; border-radius: 5px; cursor: text; }
+  .texpr .tok.num { background: #fdeaf2; }
+  .caret { display: inline-block; width: 3px; height: 1.3em; background: var(--pink); vertical-align: middle; animation: blink 1.1s steps(2,start) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .tstate { flex: 0 0 auto; align-self: center; font-size: 0.95rem; font-weight: bold; min-width: 26px; text-align: center; color: #9a9385; }
+  .tstate.ok { color: var(--good); }
+  .tstate.bad { color: var(--pink); }
 
-  .pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0 6px; min-height: 50px; }
+  .oprow { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+  .oprow button { font-family: inherit; font-weight: bold; font-size: 1.3rem; width: 52px; height: 46px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; cursor: pointer; box-shadow: 3px 3px 0 var(--purple); }
+  .oprow button:hover { background: var(--yellow); }
+  .oprow button:active { transform: translate(3px,3px); box-shadow: none; }
+
+  .pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0 6px; min-height: 48px; }
   .ptile {
-    width: 50px; height: 50px; border-radius: 12px; background: var(--yellow);
-    border: 3px solid var(--ink); font-family: inherit; font-weight: bold; font-size: 1.4rem;
+    min-width: 50px; height: 50px; padding: 0 8px; border-radius: 12px; background: var(--yellow);
+    border: 3px solid var(--ink); font-family: inherit; font-weight: bold; font-size: 1.3rem;
     cursor: pointer; box-shadow: 3px 3px 0 var(--ink);
     transition: transform 0.08s, box-shadow 0.08s;
   }
   .ptile:hover { background: #ffe98a; }
   .ptile:active { transform: translate(3px,3px); box-shadow: none; }
 
-  .keypad { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
-  .keypad button { font-family: inherit; font-weight: bold; font-size: 1.3rem; width: 52px; height: 46px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; cursor: pointer; box-shadow: 3px 3px 0 var(--purple); }
-  .keypad button:hover { background: var(--yellow); }
-  .keypad button:active { transform: translate(3px,3px); box-shadow: none; }
   .actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
   .actions button { font-family: inherit; font-weight: bold; font-size: 0.95rem; padding: 9px 16px; background: #fff; border: 3px solid var(--ink); border-radius: 22px; cursor: pointer; box-shadow: 3px 3px 0 var(--orange); }
   .actions button:hover { background: var(--yellow); }
@@ -96,9 +106,8 @@
 
 <div class="wrap">
   <div class="counter"><span id="placed">0</span> / <span id="total">16</span> numbers placed</div>
-  <div class="targets" id="targets"></div>
-  <div class="pool" id="pool"></div>
-  <div class="keypad">
+  <div class="rows" id="rows"></div>
+  <div class="oprow">
     <button data-op="(">(</button>
     <button data-op=")">)</button>
     <button data-op="+">+</button>
@@ -107,8 +116,9 @@
     <button data-op="÷">÷</button>
     <button id="backspace">⌫</button>
   </div>
+  <div class="pool" id="pool"></div>
   <div class="actions">
-    <button id="clearBtn">Clear target</button>
+    <button id="clearBtn">Clear row</button>
     <button id="shuffleBtn">Shuffle</button>
     <button id="hintBtn">Hint</button>
     <button id="newBtn">New puzzle</button>
@@ -162,10 +172,10 @@ function evalTokens(tokens) {
 }
 
 /* ---------- puzzle generation ---------- */
-const VALUE_CAP = 1000;
-const TARGET_MIN = 20, TARGET_MAX = 150;
+const VALUE_CAP = 5000;
+const TARGET_MIN = 20, TARGET_MAX = 200;
 const BOARD_SIZE = 16;
-const NUM_MIN = 1, NUM_MAX = 12;
+const NUM_MIN = 1, NUM_MAX = 50;       // 16 DISTINCT numbers drawn from this range
 const GROUP_MIN = 2, GROUP_MAX = 6;
 
 function shuffled(arr) {
@@ -207,20 +217,25 @@ function randSizes() {
 }
 
 function generateGropo() {
-  for (let attempt = 0; attempt < 300; attempt++) {
+  const all = [];
+  for (let n = NUM_MIN; n <= NUM_MAX; n++) all.push(n);
+  for (let attempt = 0; attempt < 400; attempt++) {
     const sizes = randSizes();
-    const groups = [];
+    const used = new Set();          // numbers already taken — keeps all 16 distinct
     const usedTargets = new Set();
+    const groups = [];
     let ok = true;
     for (const size of sizes) {
       let made = null;
-      for (let t = 0; t < 200; t++) {
-        const nums = Array.from({ length: size }, () => randInt(NUM_MIN, NUM_MAX));
+      for (let t = 0; t < 250; t++) {
+        const avail = all.filter(n => !used.has(n));
+        const nums = shuffled(avail).slice(0, size);
         const reach = reachableValues(nums);
         const cands = [...reach].filter(v => v >= TARGET_MIN && v <= TARGET_MAX && !usedTargets.has(v));
         if (cands.length) { made = { nums, target: cands[Math.floor(Math.random() * cands.length)] }; break; }
       }
       if (!made) { ok = false; break; }
+      made.nums.forEach(n => used.add(n));
       usedTargets.add(made.target);
       groups.push(made);
     }
@@ -230,7 +245,7 @@ function generateGropo() {
 }
 
 /* ---------- game state & UI ---------- */
-const targetsEl = document.getElementById('targets');
+const rowsEl = document.getElementById('rows');
 const poolEl = document.getElementById('pool');
 const placedEl = document.getElementById('placed');
 const totalEl = document.getElementById('total');
@@ -240,12 +255,14 @@ const overlayCardEl = document.getElementById('overlayCard');
 
 const GROUP_EMOJI = ['🟨', '🟩', '🟥', '🟪'];
 
-let pool = [];     // [{id, v, target, placed, card}] — index-aligned: pool[i].id === i
+let pool = [];     // [{id, v, target, placed}] — index-aligned: pool[i].id === i
 let order = [];     // display order of tile ids
-let cards = [];     // [{target, tokens: [{t,v,tileId?}]}]
+let cards = [];     // [{target, tokens:[{t,v,tileId?}], caret}]
 let active = 0;
 let hintsUsed = 0;
 let solved = false;
+let digitBuf = '';
+let digitTimer = null;
 
 function showToast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(() => toastEl.classList.remove('show'), 1500); }
 function showOverlay(html) { overlayCardEl.innerHTML = html; overlayEl.classList.remove('hidden'); }
@@ -253,50 +270,61 @@ function hideOverlay() { overlayEl.classList.add('hidden'); }
 
 function numCount(card) { return card.tokens.filter(t => t.t === 'num').length; }
 function placedCount() { return pool.filter(p => p.placed).length; }
-
 function renderCounter() { placedEl.textContent = placedCount(); totalEl.textContent = pool.length; }
 
-function renderTargets() {
-  targetsEl.innerHTML = '';
+function renderRows() {
+  rowsEl.innerHTML = '';
   cards.forEach((card, ci) => {
     const v = evalTokens(card.tokens);
-    const div = document.createElement('div');
-    div.className = 'tcard' + (ci === active ? ' active' : '') + (v === card.target ? ' done' : '');
-    div.dataset.c = ci;
-    div.addEventListener('click', () => { active = ci; renderTargets(); });
+    const row = document.createElement('div');
+    row.className = 'trow' + (ci === active ? ' active' : '') + (v === card.target ? ' done' : '');
+    row.dataset.c = ci;
+    row.addEventListener('click', () => { active = ci; card.caret = card.tokens.length; renderRows(); });
 
-    const top = document.createElement('div');
-    top.className = 'ttop';
-    top.innerHTML = `<span class="tlabel">TARGET</span><span class="tval">${card.target}</span>`;
-    div.appendChild(top);
+    const badge = document.createElement('div');
+    badge.className = 'tbadge';
+    badge.innerHTML = `<span class="lbl">TARGET</span><span class="val">${card.target}</span>`;
+    row.appendChild(badge);
 
     const expr = document.createElement('div');
     expr.className = 'texpr';
-    if (card.tokens.length === 0) {
-      expr.innerHTML = '<span class="ph">tap numbers…</span>';
+    if (card.tokens.length === 0 && ci !== active) {
+      expr.innerHTML = '<span class="ph">tap numbers &amp; operators…</span>';
     } else {
-      card.tokens.forEach((tk, ti) => {
-        const sp = document.createElement('span');
-        sp.className = 'tok ' + (tk.t === 'num' ? 'num' : 'op');
-        sp.textContent = tk.v;
-        if (tk.t === 'num') {
-          sp.title = 'remove';
-          sp.addEventListener('click', (e) => { e.stopPropagation(); active = ci; removeToken(ci, ti); });
+      for (let i = 0; i <= card.tokens.length; i++) {
+        if (ci === active && i === card.caret) {
+          const c = document.createElement('span'); c.className = 'caret'; expr.appendChild(c);
         }
-        expr.appendChild(sp);
-      });
+        if (i < card.tokens.length) {
+          const tk = card.tokens[i];
+          const sp = document.createElement('span');
+          sp.className = 'tok ' + (tk.t === 'num' ? 'num' : 'op');
+          sp.textContent = tk.v;
+          const idx = i;
+          sp.addEventListener('click', (e) => {
+            e.stopPropagation();
+            flushDigits();
+            active = ci;
+            const r = sp.getBoundingClientRect();
+            card.caret = e.clientX < r.left + r.width / 2 ? idx : idx + 1;
+            renderRows();
+          });
+          expr.appendChild(sp);
+        }
+      }
     }
-    div.appendChild(expr);
+    row.appendChild(expr);
 
-    const res = document.createElement('div');
-    res.className = 'tres';
-    if (card.tokens.length === 0) { res.textContent = ''; }
-    else if (v === undefined) { res.textContent = '= …'; }
-    else if (v === null) { res.textContent = '✗ no fractions'; res.classList.add('bad'); }
-    else { res.textContent = `= ${v}`; if (v === card.target) res.classList.add('ok'); else res.classList.add('bad'); }
-    div.appendChild(res);
+    const state = document.createElement('div');
+    state.className = 'tstate';
+    if (card.tokens.length === 0) state.textContent = '';
+    else if (v === undefined) state.textContent = '…';
+    else if (v === null) { state.textContent = '✗'; state.classList.add('bad'); }
+    else if (v === card.target) { state.textContent = '✓'; state.classList.add('ok'); }
+    else { state.textContent = v; }
+    row.appendChild(state);
 
-    targetsEl.appendChild(div);
+    rowsEl.appendChild(row);
   });
 }
 
@@ -308,47 +336,50 @@ function renderPool() {
     const b = document.createElement('button');
     b.className = 'ptile';
     b.textContent = p.v;
-    b.addEventListener('click', () => placeNumber(id));
+    b.addEventListener('click', () => insertNumber(id));
     poolEl.appendChild(b);
   });
 }
 
-function renderAll() { renderTargets(); renderPool(); renderCounter(); }
+function renderAll() { renderRows(); renderPool(); renderCounter(); }
 
-function placeNumber(id) {
+function insertToken(tok) { const c = cards[active]; c.tokens.splice(c.caret, 0, tok); c.caret++; }
+function insertNumber(id) {
+  if (solved || pool[id].placed) return;
+  flushDigits();
+  pool[id].placed = true;
+  insertToken({ t: 'num', v: pool[id].v, tileId: id });
+  renderAll(); checkWin();
+}
+function insertOp(v) {
   if (solved) return;
-  const p = pool[id];
-  if (p.placed) return;
-  p.placed = true; p.card = active;
-  cards[active].tokens.push({ t: 'num', v: p.v, tileId: id });
+  flushDigits();
+  insertToken(v === '(' || v === ')' ? { t: 'paren', v } : { t: 'op', v });
+  renderRows();
+}
+function backspace() {
+  if (solved) return;
+  if (digitBuf) { clearTimeout(digitTimer); digitBuf = ''; return; }
+  const c = cards[active];
+  if (c.caret === 0) return;
+  const tk = c.tokens[c.caret - 1];
+  if (tk.t === 'num') pool[tk.tileId].placed = false;
+  c.tokens.splice(c.caret - 1, 1);
+  c.caret--;
   renderAll();
-  checkWin();
 }
-function removeToken(ci, ti) {
+function clearRow() {
   if (solved) return;
-  const tk = cards[ci].tokens[ti];
-  if (tk.t === 'num') { pool[tk.tileId].placed = false; pool[tk.tileId].card = null; }
-  cards[ci].tokens.splice(ti, 1);
-  renderAll();
-}
-function pushOp(v) {
-  if (solved) return;
-  cards[active].tokens.push(v === '(' || v === ')' ? { t: 'paren', v } : { t: 'op', v });
-  renderTargets();
-}
-function clearTarget() {
-  if (solved) return;
-  cards[active].tokens.forEach(tk => { if (tk.t === 'num') { pool[tk.tileId].placed = false; pool[tk.tileId].card = null; } });
-  cards[active].tokens = [];
+  const c = cards[active];
+  c.tokens.forEach(tk => { if (tk.t === 'num') pool[tk.tileId].placed = false; });
+  c.tokens = []; c.caret = 0;
   renderAll();
 }
 
 function checkWin() {
   if (placedCount() !== pool.length) return;
-  const allOk = cards.every(c => evalTokens(c.tokens) === c.target);
-  if (!allOk) return;
+  if (!cards.every(c => evalTokens(c.tokens) === c.target)) return;
   solved = true;
-  const sizes = cards.map(c => numCount(c));
   const shareRow = cards.map((c, ci) => GROUP_EMOJI[ci].repeat(numCount(c))).join(' ');
   const shareText = `Gropo\n${shareRow}\n${hintsUsed} hint${hintsUsed === 1 ? '' : 's'}`;
   showOverlay(`
@@ -366,17 +397,45 @@ function checkWin() {
   document.getElementById('againBtn').addEventListener('click', () => { hideOverlay(); newGame(); });
 }
 
-document.querySelectorAll('.keypad button[data-op]').forEach(b => b.addEventListener('click', () => pushOp(b.dataset.op)));
-document.getElementById('backspace').addEventListener('click', () => {
-  if (solved) return;
-  const toks = cards[active].tokens;
-  if (toks.length === 0) return;
-  const tk = toks[toks.length - 1];
-  if (tk.t === 'num') { pool[tk.tileId].placed = false; pool[tk.tileId].card = null; }
-  toks.pop();
-  renderAll();
+/* ---------- keyboard ---------- */
+function commitDigits(force) {
+  if (!digitBuf) return;
+  const avail = pool.filter(p => !p.placed);
+  const exact = avail.find(p => String(p.v) === digitBuf);
+  const extendable = avail.some(p => String(p.v).startsWith(digitBuf) && String(p.v) !== digitBuf);
+  if (exact && (!extendable || force)) { insertNumber(exact.id); digitBuf = ''; }
+  else if (!extendable || force) { digitBuf = ''; }
+}
+function flushDigits() { clearTimeout(digitTimer); commitDigits(true); }
+
+document.addEventListener('keydown', (e) => {
+  if (solved || !overlayEl.classList.contains('hidden')) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const opMap = { '+': '+', '-': '−', '*': '×', x: '×', '/': '÷', '(': '(', ')': ')' };
+  if (/^[0-9]$/.test(e.key)) {
+    e.preventDefault();
+    clearTimeout(digitTimer);
+    digitBuf += e.key;
+    commitDigits(false);
+    if (digitBuf) digitTimer = setTimeout(() => commitDigits(true), 650);
+  } else if (opMap[e.key]) {
+    e.preventDefault(); insertOp(opMap[e.key]);
+  } else if (e.key === 'Backspace') {
+    e.preventDefault(); backspace();
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault(); flushDigits(); const c = cards[active]; c.caret = Math.max(0, c.caret - 1); renderRows();
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault(); flushDigits(); const c = cards[active]; c.caret = Math.min(c.tokens.length, c.caret + 1); renderRows();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault(); flushDigits(); active = (active + cards.length - 1) % cards.length; renderRows();
+  } else if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault(); flushDigits(); active = (active + 1) % cards.length; renderRows();
+  }
 });
-document.getElementById('clearBtn').addEventListener('click', clearTarget);
+
+document.querySelectorAll('.oprow button[data-op]').forEach(b => b.addEventListener('click', () => insertOp(b.dataset.op)));
+document.getElementById('backspace').addEventListener('click', backspace);
+document.getElementById('clearBtn').addEventListener('click', clearRow);
 document.getElementById('shuffleBtn').addEventListener('click', () => { order = shuffled(order); renderPool(); });
 document.getElementById('hintBtn').addEventListener('click', giveHint);
 document.getElementById('newBtn').addEventListener('click', newGame);
@@ -387,11 +446,8 @@ function giveHint() {
   if (unplaced.length === 0) { showToast('All numbers are placed!'); return; }
   const p = unplaced[Math.floor(Math.random() * unplaced.length)];
   hintsUsed++;
-  // find the card whose target matches this number's intended group target
   const ci = cards.findIndex(c => c.target === p.target);
-  active = ci >= 0 ? ci : active;
-  renderTargets();
-  showToast(`Try ${p.v} on the ${cards[ci].target} target`);
+  if (ci >= 0) { active = ci; renderRows(); showToast(`Try ${p.v} on the ${cards[ci].target} target`); }
 }
 
 function newGame() {
@@ -399,15 +455,12 @@ function newGame() {
   setTimeout(() => {
     const groups = generateGropo();
     if (!groups) { showOverlay('<h2>Hmm</h2><p>Could not build a puzzle — try again.</p>'); return; }
-    cards = groups.map(g => ({ target: g.target, tokens: [] }));
-    // build the pool: every number tagged with the target of the group it came from
+    cards = groups.map(g => ({ target: g.target, tokens: [], caret: 0 }));
     pool = [];
-    groups.forEach(g => g.nums.forEach(v => pool.push({ id: 0, v, target: g.target, placed: false, card: null })));
+    groups.forEach(g => g.nums.forEach(v => pool.push({ id: 0, v, target: g.target, placed: false })));
     pool.forEach((p, i) => p.id = i);          // index-aligned ids
     order = shuffled(pool.map(p => p.id));      // randomized display order
-    active = 0;
-    hintsUsed = 0;
-    solved = false;
+    active = 0; hintsUsed = 0; solved = false; digitBuf = '';
     renderAll();
     hideOverlay();
   }, 30);
